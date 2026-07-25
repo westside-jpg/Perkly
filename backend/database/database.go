@@ -67,8 +67,8 @@ func CreateTables(db *pgxpool.Pool) error {
 		CREATE TABLE IF NOT EXISTS product_variants (
 			id SERIAL PRIMARY KEY,
 			product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-			volume_ml INTEGER NOT NULL,
-			calories_base INTEGER NOT NULL DEFAULT 0,
+			volume INTEGER NOT NULL,
+			calories_base INTEGER NOT NULL,
 			price_base INTEGER NOT NULL
 		);
 
@@ -76,8 +76,8 @@ func CreateTables(db *pgxpool.Pool) error {
 			id SERIAL PRIMARY KEY,
 			"group" TEXT NOT NULL, -- 'milk' | 'syrup' | 'addon'
 			name TEXT NOT NULL,
-			price_delta INTEGER NOT NULL DEFAULT 0,
-			calories_delta INTEGER NOT NULL DEFAULT 0
+			price_delta INTEGER NOT NULL,
+			calories_delta INTEGER NOT NULL
 		);
 
 		CREATE TABLE IF NOT EXISTS product_options (
@@ -90,8 +90,8 @@ func CreateTables(db *pgxpool.Pool) error {
 			id SERIAL PRIMARY KEY,
 			user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
 			status TEXT NOT NULL DEFAULT 'pending', -- pending | preparing | ready | completed
-			total_price INTEGER NOT NULL DEFAULT 0,
-			total_calories INTEGER NOT NULL DEFAULT 0,
+			total_price INTEGER NOT NULL,
+			total_calories INTEGER NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		);
 
@@ -99,7 +99,7 @@ func CreateTables(db *pgxpool.Pool) error {
 			id SERIAL PRIMARY KEY,
 			order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
 			product_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
-			quantity INTEGER NOT NULL DEFAULT 1,
+			quantity INTEGER NOT NULL,
 			price_snapshot INTEGER NOT NULL,
 			calories_snapshot INTEGER NOT NULL
 		);
@@ -107,7 +107,7 @@ func CreateTables(db *pgxpool.Pool) error {
 		CREATE TABLE IF NOT EXISTS order_item_options (
 			order_item_id INTEGER NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
 			option_id INTEGER NOT NULL REFERENCES options(id),
-			quantity INTEGER NOT NULL DEFAULT 1,
+			quantity INTEGER NOT NULL,
 			PRIMARY KEY (order_item_id, option_id)
 		);
 
