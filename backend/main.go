@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/westside-jpg/Perkly/backend/config"
 	"github.com/westside-jpg/Perkly/backend/database"
+	"github.com/westside-jpg/Perkly/backend/routers"
 )
 
 func main() {
