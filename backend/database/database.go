@@ -124,3 +124,22 @@ func CreateTables(db *pgxpool.Pool) error {
 	return err
 
 }
+
+func DropTables(db *pgxpool.Pool) error {
+	_, err := db.Exec(
+		context.Background(),
+		`
+		DROP TABLE IF EXISTS users CASCADE;
+		DROP TABLE IF EXISTS categories CASCADE;
+		DROP TABLE IF EXISTS products CASCADE;
+		DROP TABLE IF EXISTS product_variants CASCADE;
+		DROP TABLE IF EXISTS options CASCADE;
+		DROP TABLE IF EXISTS product_options CASCADE;
+		DROP TABLE IF EXISTS orders CASCADE;
+		DROP TABLE IF EXISTS order_items CASCADE;
+		DROP TABLE IF EXISTS order_item_options CASCADE;
+		`,
+	)
+
+	return err
+}

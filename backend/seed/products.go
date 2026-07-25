@@ -30,7 +30,7 @@ type Product struct {
 
 func SeedExactProducts(db *pgxpool.Pool) error {
 	products := []Product{
-		// 1 — Классический кофе
+		// 1 — Базовый кофе
 		{CategoryID: 1, Name: "Эспрессо", Unit: "мл", Description: "Классический крепкий кофе с насыщенным вкусом, плотной пенкой крема и ярким ароматом свежемолотых зёрен", ImageURL: "/images/products/espresso.png"},
 		{CategoryID: 1, Name: "Двойной эспрессо", Unit: "мл", Description: "Увеличенная порция эспрессо с более глубоким вкусом, насыщенным ароматом и высокой концентрацией кофе", ImageURL: "/images/products/espresso.png"},
 		{CategoryID: 1, Name: "Американо", Unit: "мл", Description: "Классический кофейный напиток на основе эспрессо с добавлением горячей воды, мягким вкусом и лёгкими кофейными нотами", ImageURL: "/images/products/americano.png"},

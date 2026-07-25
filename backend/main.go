@@ -13,11 +13,17 @@ import (
 
 func main() {
 	db := database.Connect(config.GetDatabaseURL())
-	err := database.CreateTables(db)
-	if err != nil {
-		log.Fatal("Не удалось создать таблицы!")
-	}
 	defer db.Close()
+
+	err := database.DropTables(db)
+	if err != nil {
+		log.Fatal("Не удалось удалить таблицы!\n", err)
+	}
+
+	err = database.CreateTables(db)
+	if err != nil {
+		log.Fatal("Не удалось создать таблицы!\n", err)
+	}
 
 	_ = seed.SetupSeeds(db)
 

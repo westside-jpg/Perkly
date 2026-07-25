@@ -13,7 +13,7 @@ type Category struct {
 
 func SeedCategories(db *pgxpool.Pool) error {
 	categories := []Category{
-		{Name: "Классический кофе", SortOrder: 1},
+		{Name: "Базовый кофе", SortOrder: 1},
 		{Name: "Холодный кофе", SortOrder: 2},
 		{Name: "Авторские напитки", SortOrder: 3},
 		{Name: "Чай и матча", SortOrder: 4},

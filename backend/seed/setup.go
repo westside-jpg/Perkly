@@ -1,13 +1,29 @@
 package seed
 
 import (
+	"context"
 	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func SetupSeeds(db *pgxpool.Pool) error {
-	err := SeedCategories(db)
+	var count int
+	err := db.QueryRow(
+		context.Background(),
+		`SELECT COUNT(*) FROM categories`,
+	).Scan(&count)
+
+	if err != nil {
+		log.Fatal("Ошибка проверки состояния БД перед сидированием", err)
+	}
+
+	if count > 0 {
+		log.Println("seed: данные уже есть, пропуск сидирования")
+		return nil
+	}
+
+	err = SeedCategories(db)
 	if err != nil {
 		log.Fatal("Ошибка добавления категорий товаров в БД (seed/categories.go)", err)
 	}
