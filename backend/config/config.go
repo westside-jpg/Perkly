@@ -14,7 +14,7 @@ GetDatabaseURL загружает переменные окружения из �
 а выводит сообщение в лог
 */
 func GetDatabaseURL() string {
-	err := godotenv.Load()
+	err := godotenv.Load("../.env")
 
 	if err != nil {
 		log.Println(".env")

@@ -8,6 +8,7 @@ import (
 	"github.com/westside-jpg/Perkly/backend/config"
 	"github.com/westside-jpg/Perkly/backend/database"
 	"github.com/westside-jpg/Perkly/backend/routers"
+	"github.com/westside-jpg/Perkly/backend/seed"
 )
 
 func main() {
@@ -17,6 +18,8 @@ func main() {
 		log.Fatal("Не удалось создать таблицы!")
 	}
 	defer db.Close()
+
+	_ = seed.SetupSeeds(db)
 
 	r := gin.Default()
 
