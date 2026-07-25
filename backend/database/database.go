@@ -60,6 +60,7 @@ func CreateTables(db *pgxpool.Pool) error {
 			id SERIAL PRIMARY KEY,
 			category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
 			name TEXT NOT NULL,
+			unit TEXT NOT NULL,
 			description TEXT,
 			image_url TEXT
 		);
