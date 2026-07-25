@@ -70,7 +70,7 @@ func SeedExactProducts(db *pgxpool.Pool) error {
 		{CategoryID: 5, Name: "Манговый лимонад", Unit: "мл", Description: "Тропический лимонад с насыщенным вкусом спелого манго и освежающими цитрусовыми нотами", ImageURL: "/images/products/mango_limonade.png"},
 		{CategoryID: 5, Name: "Лимонад с маракуйей", Unit: "мл", Description: "Фруктовый лимонад с ярким вкусом экзотической маракуйи и приятным кисло-сладким послевкусием", ImageURL: "/images/products/passion_fruit_lemonade.png"},
 		{CategoryID: 5, Name: "Блю Лагуна", Unit: "мл", Description: "Яркий освежающий лимонад с тропическим вкусом и лёгкими цитрусовыми нотами", ImageURL: "/images/products/blue_lagoon.png"},
-		{CategoryID: 5, Name: "Мохито лимонад", Unit: "мл", Description: "Освежающий лимонад с лаймом, мятой и лёгким кисло-сладким вкусом классического мохито", ImageURL: "/images/products/mojito_lemonade.png"},
+		{CategoryID: 5, Name: "Мохито", Unit: "мл", Description: "Освежающий лимонад с лаймом, мятой и лёгким кисло-сладким вкусом классического мохито", ImageURL: "/images/products/mojito_lemonade.png"},
 
 		// 6 — Рефрешеры
 		{CategoryID: 6, Name: "Клубничный рефрешер", Unit: "мл", Description: "Лёгкий фруктовый напиток с насыщенным вкусом клубники и освежающими ягодными нотами", ImageURL: "/images/products/strawberry_refresher.png"},
