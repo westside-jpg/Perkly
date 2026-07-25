@@ -74,10 +74,13 @@ func CreateTables(db *pgxpool.Pool) error {
 
 		CREATE TABLE IF NOT EXISTS options (
 			id SERIAL PRIMARY KEY,
-			"group" TEXT NOT NULL, -- 'milk' | 'syrup' | 'addon'
+			"group" TEXT NOT NULL,
 			name TEXT NOT NULL,
+			volume INTEGER NOT NULL,
+			unit TEXT NOT NULL,
 			price_delta INTEGER NOT NULL,
-			calories_delta INTEGER NOT NULL
+			calories_delta INTEGER NOT NULL,
+			image_url TEXT
 		);
 
 		CREATE TABLE IF NOT EXISTS product_options (
@@ -89,7 +92,7 @@ func CreateTables(db *pgxpool.Pool) error {
 		CREATE TABLE IF NOT EXISTS orders (
 			id SERIAL PRIMARY KEY,
 			user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-			status TEXT NOT NULL DEFAULT 'pending', -- pending | preparing | ready | completed
+			status TEXT NOT NULL DEFAULT 'pending',
 			total_price INTEGER NOT NULL,
 			total_calories INTEGER NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()

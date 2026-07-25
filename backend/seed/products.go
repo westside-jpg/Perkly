@@ -77,7 +77,7 @@ func SeedExactProducts(db *pgxpool.Pool) error {
 		{CategoryID: 6, Name: "Персиковый рефрешер", Description: "Нежный фруктовый напиток с мягким вкусом спелого персика и лёгким освежающим послевкусием", ImageURL: "/images/products/peach_refresher.png"},
 		{CategoryID: 6, Name: "Ягодный рефрешер", Description: "Освежающий напиток с сочетанием лесных ягод и насыщенным фруктовым ароматом", ImageURL: "/images/products/berry_refresher.png"},
 
-		// 7 — Горячий шоколад и какао
+		// 7 — Горячий шоколад
 		{CategoryID: 7, Name: "Горячий шоколад", Description: "Насыщенный шоколадный напиток с нежной молочной текстурой и глубоким вкусом какао", ImageURL: "/images/products/hot_chocolate.png"},
 		{CategoryID: 7, Name: "Белый горячий шоколад", Description: "Сливочный напиток на основе белого шоколада с мягким сладким вкусом и нежной текстурой", ImageURL: "/images/products/white_hot_chocolate.png"},
 		{CategoryID: 7, Name: "Какао с маршмеллоу", Description: "Тёплое какао с воздушными маршмеллоу и насыщенным шоколадным ароматом", ImageURL: "/images/products/cocoa_with_marshmallows.png"},
