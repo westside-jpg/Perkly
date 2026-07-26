@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react'
 import KioskFrame from './KioskFrame'
 import CategoriesTabs from './components/CategoriesTabs'
 import ProductCard from './components/ProductCard'
+import SyrupAndAddonChooser from './components/SyrupAndAddonChooser'
 import { Toaster } from 'sonner'
 import { toast } from 'sonner'
 
@@ -158,6 +159,8 @@ function App() {
         onSelectCategory={scrollToCategory}
       />
 
+      <SyrupAndAddonChooser />
+      
       <div 
       ref={scrollContainerRef}
       className="overflow-y-auto scrollbar-hide max-h-[980px] pb-[50px]"
