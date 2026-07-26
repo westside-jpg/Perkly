@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 @font-face {
-    font-family: "MyFont";
-    src: url("/Manrope.ttf");
+    font-family: "Manrope";
+    src: url("/Manrope.ttf") format("truetype");
+}
+
+body {
+    font-family: "Manrope", sans-serif;
 }
 
 .scrollbar-hide::-webkit-scrollbar {

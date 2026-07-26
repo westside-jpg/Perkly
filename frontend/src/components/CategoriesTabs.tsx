@@ -1,29 +1,16 @@
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { useState } from 'react'
 
-export default function CategoriesTabs() {
-    const [categories, setCategories] = useState([])
+type Category = {
+    id: number
+    name: string
+}
+
+type CategoriesTabsProps = {
+    categories: Category[]
+}
+
+export default function CategoriesTabs({ categories }: CategoriesTabsProps) {
     const [selectedCategory, setSelectedCategory] = useState(0)
-
-    const GetCategories = async() => {
-        try {
-            const response = await fetch("http://localhost:8080/api/get-categories")
-            const data = await response.json()
-
-            if (response.ok) {
-                setCategories(data["categories"])
-            } else {
-                toast.error(data["error"])
-            }
-        } catch (err) {
-            console.log("Ошибка сервера", err)
-            toast.error("Ошибка сервера")
-        }
-    }
-
-    useEffect(() => {
-        GetCategories()
-    }, [])
 
     return (
         <div className='flex flex-row gap-3 mt-8 px-8 overflow-x-auto whitespace-nowrap scrollbar-hide'
@@ -31,15 +18,15 @@ export default function CategoriesTabs() {
             maskImage: 'linear-gradient(to right, transparent, black 32px, black calc(100% - 32px), transparent)',
             WebkitMaskImage: 'linear-gradient(to right, transparent, black 32px, black calc(100% - 32px), transparent)',
         }}>
-            {categories.map((e, i) => (
-                <p key={i} className={
+            {categories.map((category, i) => (
+                <p key={category.id} className={
                     `text-lg px-10 py-3.5 my-1 rounded-full shrink-0 whitespace-nowrap
-                    transition-all duration-150
-                    active:scale-90
+                    transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]
+                    active:scale-90 font-semibold
                     ${selectedCategory === i ? `bg-black text-white cursor-default`
-                         : `bg-gray-300 text-gray-800 cursor-pointer`}`}
+                         : `bg-[#E4E2E2] text-gray-800 cursor-pointer`}`}
                     onClick={() => { setSelectedCategory(i)}}
-                >{e}</p>
+                >{category.name}</p>
             ))}
         </div>
     )
