@@ -1,15 +1,47 @@
-export default function MilkChooser() {
+import { useEffect, useState } from "react"
+
+type Milk = {
+    id:             number
+    name:           string
+    price_delta:    number
+    calories_delta: number
+    image_url:      string
+}
+
+interface MilkChooserProps {
+    milkInfo: Milk[]
+}
+
+export default function MilkChooser({ milkInfo } : MilkChooserProps) {
+    const [selectedId, setSelectedId] = useState<number | null>(milkInfo.length > 0 ? milkInfo[0].id : null)
+
+    useEffect(() => {
+        setSelectedId(milkInfo.length > 0 ? milkInfo[0].id : null)
+    }, [milkInfo])
+
     return (
-        <div className={`flex flex-row gap-3`}>
-            <div className={`relative border-2 border-[#A2A2A2] w-25 h-25 rounded-2xl`}>
-                <div className="absolute bottom-[8px] ml-[27px] w-11 h-2 bg-black/50 rounded-full blur-[4px]" />
-                <img alt="Фото опции кастомизации" src="/options/milk/almond_milk.png"
-                className={`relative z-10`} />
-            </div>
-            <div className={`flex flex-col mt-5`}>
-                <p className={`text-[24px]`}>Миндальное</p>
-                <p className={`text-[16px] text-[#727171] -mt-1`}>50 ккал • 60₽</p>
-            </div>
-        </div>
+        <>
+            {milkInfo.map((m) => {
+                const isSelected = m.id === selectedId
+                return (
+                    <div
+                        key={m.id}
+                        className={`flex flex-row gap-3 mb-3`}
+                        onClick={() => { setSelectedId(m.id) }}>
+                        <div className={`relative border-2 w-25 h-25 rounded-2xl
+                            transition-all duration-150 active:scale-90
+                            ${isSelected ? "border-[#343434] cursor-default" : "border-[#A2A2A2] cursor-pointer"}`}>
+                            <div className="absolute bottom-[8px] ml-[27px] w-11 h-2 bg-black/50 rounded-full blur-[4px]" />
+                            <img alt="Фото опции кастомизации" src={m.image_url}
+                            className={`relative z-10`} />
+                        </div>
+                        <div className={`flex flex-col mt-5`}>
+                            <p className={`text-[24px]`}>{m.name}</p>
+                            <p className={`text-[16px] text-[#727171] -mt-1`}>{m.calories_delta} ккал • {m.price_delta}₽</p>
+                        </div>
+                    </div>
+                )
+                })}
+        </>
     )
 }

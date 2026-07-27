@@ -119,7 +119,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool) {
 			CaloriesDelta int    `json:"calories_delta"`
 			ImageURL      string `json:"image_url"`
 		}
-		
+
 		// Все опции, доступные для этого продукта
 		optionRows, err := db.Query(
 			context.Background(),
@@ -127,7 +127,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool) {
 			FROM product_options po
 			JOIN options o ON o.id = po.option_id
 			WHERE po.product_id = $1
-			ORDER BY o.group, o.name`,
+			ORDER BY o.group, o.sort_order ASC`,
 			id,
 		)
 		if err != nil {

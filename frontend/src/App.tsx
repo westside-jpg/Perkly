@@ -18,10 +18,38 @@ type ProductCardAndCategories = {
 		min_calories:  number
 }
 
+type PopUpProductInfo = {
+    name:        string
+    unit:        string
+    description: string
+    image_url:   string 
+}
+
+type PopUpVariant = {
+    id:            number
+    volume:        number
+    calories_base: number
+    price_base:    number
+}
+
+type PopUpOption = {
+    id:             number
+    group:          string
+    name:           string
+    volume:         number
+    unit:           string
+    price_delta:    number
+    calories_delta: number
+    image_url:      string
+}
+
 function App() {
   const [results, setResults] = useState<ProductCardAndCategories[]>([])
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [popUpOpen, setPopUpOpen] = useState(false)
+  const [popUpProductInfo, setPopUpProductInfo] = useState<PopUpProductInfo| null>(null)
+  const [popUpVariant, setPopUpVariant] = useState<PopUpVariant[]>([])
+  const [popUpOption, setPopUpOption] = useState<PopUpOption[]>([])
 
   // useMemo пересчитывает уникальные категории ТОЛЬКО когда изменился results,
   // а не при каждом рендере (рендер происходит при каждом scroll, т.к. selectedCategory это state).
@@ -35,7 +63,7 @@ function App() {
     [results]
   )
 
-  // --- Скролл и всё, что с ним связано ---
+  // --- Скролл, и всё, что с ним связано ---
 
   // sectionRefs словарь "id категории -> реальный DOM-элемент её секции".
   // Нужен, чтобы потом узнать offsetTop конкретной секции и прокрутить к ней вручную
@@ -142,6 +170,25 @@ function App() {
     GetProductsAndCategories()
   }, [])
 
+  const GetPopUpDetails = async (productId: number) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/get-product-information/${productId}`)
+      const data = await response.json()
+
+      if (response.ok) {
+        setPopUpProductInfo(data["product"])
+        setPopUpVariant(data["variants"])
+        setPopUpOption(data["options"])
+        setPopUpOpen(true)
+      } else {
+        toast.error(data["error"])
+      }
+    } catch (err) {
+      console.log("Ошибка сервера: ", err)
+      toast.error("Ошибка сервера")
+    }
+  }
+
   return (
     <KioskFrame>
 
@@ -160,7 +207,12 @@ function App() {
         onSelectCategory={scrollToCategory}
       />
 
-      <CustomizationPopUp isOpen={popUpOpen} onClose={() => setPopUpOpen(false)} />
+      <CustomizationPopUp isOpen={popUpOpen} 
+                          onClose={() => setPopUpOpen(false)}
+                          product={popUpProductInfo}
+                          variants={popUpVariant}
+                          options={popUpOption}
+                          />
 
       <div 
       ref={scrollContainerRef}
@@ -180,7 +232,10 @@ function App() {
                   <div className="grid grid-cols-3 gap-4 mt-6">
                       {results
                           .filter(p => p.category_id === category.id)
-                          .map(product => <ProductCard key={product.id} product={product} onOpen={() => setPopUpOpen(true)} />)}
+                          .map(product => <ProductCard 
+                                            key={product.id}
+                                            product={product}
+                                            onOpen={() => GetPopUpDetails(product.id)} />)}
                   </div>
               </div>
           ))}

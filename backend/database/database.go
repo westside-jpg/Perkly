@@ -81,7 +81,8 @@ func CreateTables(db *pgxpool.Pool) error {
 			unit TEXT NOT NULL,
 			price_delta INTEGER NOT NULL,
 			calories_delta INTEGER NOT NULL,
-			image_url TEXT
+			image_url TEXT,
+			sort_order INTEGER NOT NULL
 		);
 
 		CREATE TABLE IF NOT EXISTS product_options (
