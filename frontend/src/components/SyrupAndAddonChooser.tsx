@@ -11,7 +11,7 @@ export default function SyrupAndAddonChooser() {
                 <p className={`text-[16px] text-[#727171] -mt-1`}>20 мл • 50 ккал • 39₽</p>
                 <div className={`flex flex-row gap-3 mt-[6px]`}>
                     <button className={`flex justify-center text-[20px] w-8 h-8 rounded-full bg-black text-white`}>-</button>
-                    <p className={`justify-center text-[20px] pt-px`}>0</p>
+                    <p className={`justify-center text-[20px] pt-px pl-[2px] min-w-4`}>0</p>
                     <button className={`flex justify-center pt-px text-[20px] w-8 h-8 rounded-full bg-black text-white`}>+</button>
                 </div>
             </div>
