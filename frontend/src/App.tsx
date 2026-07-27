@@ -21,6 +21,7 @@ type ProductCardAndCategories = {
 function App() {
   const [results, setResults] = useState<ProductCardAndCategories[]>([])
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const [popUpOpen, setPopUpOpen] = useState(false)
 
   // useMemo пересчитывает уникальные категории ТОЛЬКО когда изменился results,
   // а не при каждом рендере (рендер происходит при каждом scroll, т.к. selectedCategory это state).
@@ -159,7 +160,7 @@ function App() {
         onSelectCategory={scrollToCategory}
       />
 
-      <CustomizationPopUp />
+      <CustomizationPopUp isOpen={popUpOpen} onClose={() => setPopUpOpen(false)} />
 
       <div 
       ref={scrollContainerRef}
@@ -179,7 +180,7 @@ function App() {
                   <div className="grid grid-cols-3 gap-4 mt-6">
                       {results
                           .filter(p => p.category_id === category.id)
-                          .map(product => <ProductCard key={product.id} product={product} />)}
+                          .map(product => <ProductCard key={product.id} product={product} onOpen={() => setPopUpOpen(true)} />)}
                   </div>
               </div>
           ))}

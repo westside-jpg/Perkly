@@ -10,9 +10,17 @@ type Product = {
     min_calories:  number
 }
 
-export default function ProductCard({ product }: { product: Product }) {
+interface ProductCardProps {
+    product: Product
+    onOpen: () => void
+}
+
+export default function ProductCard({ product, onOpen }: ProductCardProps) {
     return (
-        <div className="w-60 min-h-75 bg-[#E4E2E2] rounded-3xl flex flex-col">
+        <div className={`w-60 min-h-75 bg-[#E4E2E2] 
+            rounded-3xl flex flex-col cursor-pointer
+            transition-all duration-300 active:scale-90`}
+        onClick={() => { onOpen() }}>
             <div className="relative flex justify-center shrink-0">
                 <div className="absolute bottom-7 ml-16 w-35 h-6 bg-black/35 rounded-full blur-sm" />
                 <img src={product.image_url} className="relative z-10 scale-90" />
