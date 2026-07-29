@@ -43,6 +43,30 @@ type PopUpOption = {
     image_url:      string
 }
 
+type Milk = {
+    id:             number
+    name:           string
+    price_delta:    number
+    calories_delta: number
+    image_url:      string
+}
+
+type SyrupsAndAddons = {
+    id:             number
+    name:           string
+    volume:         number
+    unit:           string
+    price_delta:    number
+    calories_delta: number
+    image_url:      string
+}
+
+type Cart = {
+    product: PopUpVariant
+    milk: Milk | null
+    options: SyrupsAndAddons[]
+}
+
 function App() {
   const [results, setResults] = useState<ProductCardAndCategories[]>([])
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
@@ -50,6 +74,15 @@ function App() {
   const [popUpProductInfo, setPopUpProductInfo] = useState<PopUpProductInfo| null>(null)
   const [popUpVariant, setPopUpVariant] = useState<PopUpVariant[]>([])
   const [popUpOption, setPopUpOption] = useState<PopUpOption[]>([])
+  const [cart, setCart] = useState<Cart[]>([])
+
+  const totalCartPrice = cart.reduce((total, item) => {
+    const milkPrice = item.milk?.price_delta ?? 0
+    const optionsPrice = item.options.reduce((sum, opt) => sum + opt.price_delta, 0)
+
+    return total + item.product.price_base + milkPrice + optionsPrice
+  }, 0)
+
 
   // useMemo пересчитывает уникальные категории ТОЛЬКО когда изменился results,
   // а не при каждом рендере (рендер происходит при каждом scroll, т.к. selectedCategory это state).
@@ -189,6 +222,41 @@ function App() {
     }
   }
 
+  const addToCart = (product: PopUpVariant, milk: Milk | null, options: SyrupsAndAddons[]) => {
+    if (!product) return
+
+    setCart(prev => [
+      ...prev,
+      {
+        product,
+        milk,
+        options
+      }
+    ])
+    
+    setPopUpOpen(false)
+  }
+
+  const declinationWord = (n: number, one: string, two: string, many: string): string => {
+    const lastTwoDigits = Math.abs(n) % 100
+
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+        return many
+    }
+
+    switch (Math.abs(n) % 10) {
+        case 1:
+            return one
+        case 2:
+        case 3:
+        case 4:
+            return two
+        default:
+            return many
+    }
+  }
+
+
   return (
     <KioskFrame>
 
@@ -212,11 +280,13 @@ function App() {
                           product={popUpProductInfo}
                           variants={popUpVariant}
                           options={popUpOption}
+                          addCart={addToCart}
                           />
 
       <div 
       ref={scrollContainerRef}
-      className="overflow-y-auto scrollbar-hide max-h-[980px] pb-[50px]"
+      className={`overflow-y-auto scrollbar-hide max-h-[980px] 
+        ${cart.length > 0 ? "pb-[110px]" : "pb-[50px]"}`}
       style={{
             maskImage: 'linear-gradient(to bottom, transparent, black 64px, black calc(100% - 64px), transparent)',
             WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 64px, black calc(100% - 64px), transparent)',
@@ -239,6 +309,23 @@ function App() {
                   </div>
               </div>
           ))}
+      </div>
+
+      <div className={`sticky flex gap-3 flex-row bottom-5 z-20
+        ${cart.length > 0 ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+          <div className={`bg-black text-white px-8 py-5 text-xl text-center rounded-full`}>
+            {cart.length}
+            {" "}
+            {declinationWord(cart.length, "товар", "товара", "товаров")}
+            {" • "}
+            {totalCartPrice}₽
+          </div>
+
+          <div className={`flex-1 bg-black text-white px-4 py-5 text-xl text-center rounded-full
+            transition-all duration-300 active:scale-95 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer`}>
+            Перейти к оплате
+          </div>
+          
       </div>
 
     </KioskFrame>

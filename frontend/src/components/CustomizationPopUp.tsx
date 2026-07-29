@@ -53,12 +53,11 @@ interface CustomizationPopUpProps {
     product: PopUpProductInfo | null
     variants: PopUpVariant[]
     options: PopUpOption[]
+    addCart: (p: PopUpVariant, m: Milk | null, o: SyrupsAndAddons[]) => void
 }
 
-export default function CustomizationPopUp({ isOpen, onClose, product, variants, options }: CustomizationPopUpProps) {
-    const [selectedVolume, setSelectedVolume] = useState(0)
-    const [basePrice, setBasePrice] = useState(0)
-    const [baseKcal, setBaseKcal] = useState(0)
+export default function CustomizationPopUp({ isOpen, onClose, product, variants, options, addCart }: CustomizationPopUpProps) {
+    const [selectedVariant, setSelectedVariant] = useState<PopUpVariant | null>(null)
 
     const [milk, setMilk] = useState<Milk[]>([])
     const [syrups, setSyrups] = useState<SyrupsAndAddons[]>([])
@@ -86,17 +85,13 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
         })
     }
 
-    // Как только пришли новые variants (открылся другой товар),
-    // сразу высчитываем минимальный объём, минимальную цену, минимальные ккал
-    // и записываем в стейт
+    // При вызове вариантов находим вариант с минимальным объёмом
     useEffect(() => {
         if (variants && variants.length > 0) {
-            const minVolume = Math.min(...variants.map(v => v.volume))
-            const minPrice = Math.min(...variants.map(v => v.price_base))
-            const minKcal = Math.min(...variants.map(v => v.calories_base))
-            setSelectedVolume(minVolume)
-            setBasePrice(minPrice)
-            setBaseKcal(minKcal)
+            const minVar = variants.reduce((min, v) => v.volume < min.volume ? v : min, variants[0])
+            setSelectedVariant(minVar)
+        } else {
+            setSelectedVariant(null)
         }
     }, [variants])
 
@@ -124,7 +119,7 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
         setSelectedSyrupsAndAddons([])
         setTotalCount(0)
     }, [options])
-    
+
 
     // Для скролла к началу карточки при открытии новой
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -169,7 +164,7 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
                         </div>
 
                         <p className="text-[64px] font-semibold text-center leading-15">{product?.name}</p>
-                        <p className="text-[24px] font-medium text-[#727171] text-center mt-3">{selectedVolume} {product?.unit} • {baseKcal} ккал</p>
+                        <p className="text-[24px] font-medium text-[#727171] text-center mt-3">{selectedVariant?.volume} {product?.unit} • {selectedVariant?.calories_base} ккал</p>
 
                         <div className="w-64 h-[2px] bg-gray-500 mx-auto my-6 shrink-0" />
 
@@ -180,15 +175,11 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
                         <p className="text-3xl font-semibold mt-8">Размер</p>
                         <div className={`flex flex-row gap-3 mt-4`}>
                             {variants.map((v) => {
-                                const isSelected = v.volume === selectedVolume
+                                const isSelected = v.id === selectedVariant?.id
                                 return (
                                     <button
                                         key={v.id}
-                                        onClick={() => {
-                                            setSelectedVolume(v.volume)
-                                            setBaseKcal(v.calories_base)
-                                            setBasePrice(v.price_base)
-                                        }}
+                                        onClick={() => setSelectedVariant(v)}
                                         className={`flex-1 font-medium text-[22px] py-4 text-center rounded-full
                                             transition-all active:scale-90 duration-300
                                             ${isSelected 
@@ -246,15 +237,23 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
 
                             <div className="relative flex flex-row gap-3">
                                 <div className="bg-[#CBCBCB] text-[#727171] rounded-full flex items-center justify-center text-[22px] font-medium px-8 py-4">
-                                    {selectedVolume} 
+                                    {selectedVariant?.volume} 
                                     {product?.unit} 
                                     {" • "}
-                                    {baseKcal + (selectedMilk?.calories_delta ?? 0) + optionsKcalDelta}
+                                    {(selectedVariant?.calories_base ?? 0) + (selectedMilk?.calories_delta ?? 0) + optionsKcalDelta}
                                     {" ккал"}
                                     {" • "}
-                                    {basePrice + (selectedMilk?.price_delta ?? 0) + optionsPriceDelta}₽
+                                    {(selectedVariant?.price_base ?? 0) + (selectedMilk?.price_delta ?? 0) + optionsPriceDelta}₽
                                 </div>
-                                <button className="flex-1 bg-black rounded-full flex items-center justify-center text-white text-4xl">
+                                <button className={`flex-1 bg-black rounded-full flex items-center justify-center text-white text-4xl
+                                transition-all duration-300 active:scale-95 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer`}
+                                onClick={() => {
+                                    const isMilkValid = milk.length === 0 || selectedMilk !== null
+
+                                    if (selectedVariant && isMilkValid) {
+                                        addCart(selectedVariant, selectedMilk, selectedSyrupsAndAddons)
+                                    }
+                                }}>
                                     +
                                 </button>
                             </div>
