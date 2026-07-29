@@ -108,22 +108,23 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
             const milkOptions = options.filter(o => o.group === 'milk')
             const syrupOptions = options.filter(o => o.group === 'syrup')
             const addonOptions = options.filter(o => o.group === 'addon')
+
             setMilk(milkOptions)
             setSyrups(syrupOptions)
             setAddons(addonOptions)
+
+            setSelectedMilk(milkOptions[0] ?? null) 
         } else {
             setMilk([])
             setSyrups([])
             setAddons([])
+            setSelectedMilk(null)
         }
-    }, [options])
 
-    // Возвращаем к default счетчики опций, как только пришли новые
-    useEffect(() => {
-        setSelectedMilk(null)
         setSelectedSyrupsAndAddons([])
         setTotalCount(0)
     }, [options])
+    
 
     // Для скролла к началу карточки при открытии новой
     const scrollRef = useRef<HTMLDivElement>(null)
