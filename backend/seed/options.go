@@ -35,7 +35,7 @@ func SeedOptions(db *pgxpool.Pool) error {
 		{Group: "syrup", Name: "Лавандовый", Volume: 20, Unit: "мл", PriceDelta: 39, CaloriesDelta: 50, ImageURL: "/options/syrups/lavender_syrup.png", SortOrder: 7},
 
 		{Group: "addon", Name: "Сахар", Volume: 4, Unit: "г", PriceDelta: 0, CaloriesDelta: 16, ImageURL: "/options/addons/sugar.png", SortOrder: 1},
-		{Group: "addon", Name: "Лёд", Volume: 80, Unit: "г", PriceDelta: 0, CaloriesDelta: 0, ImageURL: "/options/addons/ice.png", SortOrder: 2},
+		{Group: "addon", Name: "Лёд", Volume: 40, Unit: "г", PriceDelta: 0, CaloriesDelta: 0, ImageURL: "/options/addons/ice.png", SortOrder: 2},
 		{Group: "addon", Name: "Шот эспрессо", Volume: 30, Unit: "мл", PriceDelta: 70, CaloriesDelta: 5, ImageURL: "/options/addons/extra_espresso_shot.png", SortOrder: 3},
 		{Group: "addon", Name: "Взбитые сливки", Volume: 40, Unit: "г", PriceDelta: 60, CaloriesDelta: 120, ImageURL: "/options/addons/whipped_cream.png", SortOrder: 4},
 		{Group: "addon", Name: "Корица", Volume: 2, Unit: "г", PriceDelta: 20, CaloriesDelta: 5, ImageURL: "/options/addons/cinnamon.png", SortOrder: 5},

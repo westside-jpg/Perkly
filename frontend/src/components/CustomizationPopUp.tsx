@@ -64,6 +64,28 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
     const [syrups, setSyrups] = useState<SyrupsAndAddons[]>([])
     const [addons, setAddons] = useState<SyrupsAndAddons[]>([])
 
+    const [selectedMilk, setSelectedMilk] = useState<Milk | null>(null)
+    const [selectedSyrupsAndAddons, setSelectedSyrupsAndAddons] = useState<SyrupsAndAddons[]>([])
+    const [totalCount, setTotalCount] = useState(0) // Количество выбранных сиропов и аддонов (не больше 3)
+
+    const optionsKcalDelta = selectedSyrupsAndAddons.reduce((sum, item) => sum + item.calories_delta, 0)
+    const optionsPriceDelta = selectedSyrupsAndAddons.reduce((sum, item) => sum + item.price_delta, 0)
+
+    const handleOptionChange = (option: SyrupsAndAddons, action: 'add' | 'remove') => {
+        setSelectedSyrupsAndAddons(prev => {
+            if (action === 'add') {
+                return [...prev, option]
+            } else {
+                const indexToRemove = prev.findIndex(item => item.id === option.id)
+                if (indexToRemove === -1) return prev
+
+                const newArray = [...prev]
+                newArray.splice(indexToRemove, 1)
+                return newArray
+            }
+        })
+    }
+
     // Как только пришли новые variants (открылся другой товар),
     // сразу высчитываем минимальный объём, минимальную цену, минимальные ккал
     // и записываем в стейт
@@ -96,15 +118,20 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
         }
     }, [options])
 
-    const scrollRef = useRef<HTMLDivElement>(null)
+    // Возвращаем к default счетчики опций, как только пришли новые
+    useEffect(() => {
+        setSelectedMilk(null)
+        setSelectedSyrupsAndAddons([])
+        setTotalCount(0)
+    }, [options])
 
     // Для скролла к началу карточки при открытии новой
+    const scrollRef = useRef<HTMLDivElement>(null)
     useEffect(() => {
         if (isOpen && scrollRef.current) {
             scrollRef.current.scrollTop = 0
         }
     }, [isOpen])
-
 
     return (
         <div 
@@ -176,7 +203,7 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
                         {milk.length > 0 && 
                             <>
                                 <p className="text-3xl font-semibold mt-8 mb-4">Тип молока</p>
-                                <MilkChooser milkInfo={milk}/>
+                                <MilkChooser milkInfo={milk} onChange={setSelectedMilk}/>
                             </>
                         }
 
@@ -185,7 +212,11 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
                                 <>
                                     <p className="text-3xl font-semibold mt-8 mb-4">Сиропы</p>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <SyrupAndAddonChooser syrupsAndAddons={syrups} />
+                                        <SyrupAndAddonChooser 
+                                         syrupsAndAddons={syrups}
+                                         totalCount={totalCount}
+                                         onTotalCountChange={setTotalCount}
+                                         onChange={handleOptionChange}/>
                                     </div>
                                 </>
                             }
@@ -194,7 +225,11 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
                             <>
                                 <p className="text-3xl font-semibold mt-8 mb-4">Добавки</p>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <SyrupAndAddonChooser syrupsAndAddons={addons}/>
+                                    <SyrupAndAddonChooser
+                                     syrupsAndAddons={addons}
+                                     totalCount={totalCount}
+                                     onTotalCountChange={setTotalCount}
+                                     onChange={handleOptionChange}/>
                                 </div>
                             </>
                         }
@@ -210,7 +245,13 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
 
                             <div className="relative flex flex-row gap-3">
                                 <div className="bg-[#CBCBCB] text-[#727171] rounded-full flex items-center justify-center text-[22px] font-medium px-8 py-4">
-                                    {selectedVolume} {product?.unit} • 230 ккал • 356₽
+                                    {selectedVolume} 
+                                    {product?.unit} 
+                                    {" • "}
+                                    {baseKcal + (selectedMilk?.calories_delta ?? 0) + optionsKcalDelta}
+                                    {" ккал"}
+                                    {" • "}
+                                    {basePrice + (selectedMilk?.price_delta ?? 0) + optionsPriceDelta}₽
                                 </div>
                                 <button className="flex-1 bg-black rounded-full flex items-center justify-center text-white text-4xl">
                                     +

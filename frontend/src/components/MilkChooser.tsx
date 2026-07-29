@@ -10,9 +10,10 @@ type Milk = {
 
 interface MilkChooserProps {
     milkInfo: Milk[]
+    onChange: (milk: Milk) => void
 }
 
-export default function MilkChooser({ milkInfo } : MilkChooserProps) {
+export default function MilkChooser({ milkInfo, onChange } : MilkChooserProps) {
     const [selectedId, setSelectedId] = useState<number | null>(milkInfo.length > 0 ? milkInfo[0].id : null)
 
     useEffect(() => {
@@ -27,7 +28,10 @@ export default function MilkChooser({ milkInfo } : MilkChooserProps) {
                     <div
                         key={m.id}
                         className={`flex flex-row gap-3 mb-3`}
-                        onClick={() => { setSelectedId(m.id) }}>
+                        onClick={() => { 
+                            setSelectedId(m.id)
+                            onChange(m)
+                            }}>
                         <div className={`relative border-2 w-25 h-25 rounded-2xl
                             transition-all duration-150 active:scale-90
                             ${isSelected ? "border-[#343434] cursor-default" : "border-[#A2A2A2] cursor-pointer"}`}>
