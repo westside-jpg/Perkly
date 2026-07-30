@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import BonusEnter from '../components/BonusEnter'
 import { declinationWord } from '../utils/declination'
 import type { CartItem } from '../types'
 
@@ -25,6 +26,24 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
         }, 300)
     }
 
+    const [bonusProgramState, setBonusProgramState] = useState<'noNumber' | 'notVerified' | 'allDone'>('noNumber')
+    const [isBonusEnterOpen, setIsBonusEnterOpen] = useState(false)
+    const [isBonusRegistrationOpen, setIsBonusRegistrationOpen] = useState(false)
+    const [isBonusVerificationOpen, setIsBonusVerificationOpen] = useState(false)
+
+    const [phone, setPhone] = useState('')
+
+    const handleBonusEnterClose = (enteredPhone: string) => {
+        setIsBonusEnterOpen(false)
+        setPhone(enteredPhone)
+
+        if (enteredPhone.length === 10) {
+            setBonusProgramState('notVerified')
+        } else {
+            setBonusProgramState('noNumber')
+        }
+    }
+
     return (
         <div className={`flex flex-col items-center max-h-[1060px] overflow-y-auto pb-27 scrollbar-hide`}>
             
@@ -37,11 +56,43 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
                 <p className={`text-white text-[22px] pl-2`}>Назад</p>
             </div>
             
-            <div className={`text-[26px] font-medium my-4 bg-[#CBCBCB] w-full text-center
-                 text-[#4E4E4E] rounded-full px-8 py-3`}>
-                    {cart.length}
-                    {" "}
-                    {declinationWord(cart.length, "товар", "товара", "товаров")}
+            <div className={`flex flex-col self-start gap-3`}>
+                 <div className={`flex flex-row items-center mt-3 gap-3 transition-all duration-200`}>
+                    <span className={`text-[20px] font-medium shrink-0
+                        text-center px-10 py-3 rounded-full transition-all duration-200
+                        ${(bonusProgramState == 'noNumber') || (bonusProgramState == 'notVerified')
+                            ? "cursor-pointer active:scale-90"
+                            : "cursor-default pointer-events-none"}
+                        ${bonusProgramState == 'noNumber'
+                             ? "bg-[#CBCBCB] text-[#4E4E4E]" 
+                             : "bg-black text-white"}`}
+                        onClick={() => { 
+                            setIsBonusEnterOpen(true)
+                        }}>
+                        Бонусная система
+                    </span>
+                    <span className={`flex-1 text-[18px] font-medium
+                        text-[#727171] w-full`}>
+                        Мы начислим
+                        {" "}
+                        {Math.floor(totalCartPrice / 10)}
+                        {" "}
+                        {declinationWord(Math.floor(totalCartPrice / 10), "бонус", "бонуса", "бонусов")}
+                        {" "}
+                        за этот заказ
+                    </span> 
+                </div>
+                 <div className={`flex flex-row items-center gap-3 transition-all duration-200
+                    ${bonusProgramState != 'noNumber' ? "opacity-100 cursor-pointer mb-3" : "opacity-0 pointer-events-none max-h-0 !m-0 !p-0"}`}>
+                    <span className={`text-[20px] font-medium bg-[#CBCBCB] shrink-0
+                        text-[#4E4E4E] text-center px-12.5 py-3 rounded-full`}>
+                        Списать бонусы
+                    </span>
+                    <span className={`flex-1 text-[18px] font-medium
+                        text-[#727171] w-full`}>
+                        На Вашем счете 432 бонуса
+                    </span> 
+                </div>
             </div>
 
             {cart.map((item, index) => {
@@ -127,7 +178,11 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
                     </div>
             </div>
 
-        
+            <BonusEnter
+            isBonusEnterOpen={isBonusEnterOpen} 
+            initialPhone={phone}
+            onBonusEnterClose={handleBonusEnterClose}   />
+
         </div>
     )
     
