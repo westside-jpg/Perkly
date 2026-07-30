@@ -1,17 +1,7 @@
-type Product = {
-    id:            number
-    category_id:   number
-    category_name: string
-    name:          string
-    unit:          string
-    image_url:     string
-    min_volume:    number
-    min_price:     number
-    min_calories:  number
-}
+import { type ProductCardAndCategories } from "../types"
 
 interface ProductCardProps {
-    product: Product
+    product: ProductCardAndCategories
     onOpen: () => void
 }
 

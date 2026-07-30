@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-type Category = { id: number; name: string }
+import { type Category } from '../types'
 
 type CategoriesTabsProps = {
     categories: Category[]

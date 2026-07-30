@@ -1,51 +1,8 @@
 import SyrupAndAddonChooser from './SyrupAndAddonChooser'
 import MilkChooser from './MilkChooser'
 import { useState, useEffect, useRef } from 'react'
+import type { PopUpProductInfo, PopUpVariant, Milk, PopUpOption } from '../types'
 
-// Для пропсов
-type PopUpProductInfo = {
-    name:        string
-    unit:        string
-    description: string
-    image_url:   string 
-}
-
-type PopUpVariant = {
-    id:            number
-    volume:        number
-    calories_base: number
-    price_base:    number
-}
-
-type PopUpOption = {
-    id:             number
-    group:          string
-    name:           string
-    volume:         number
-    unit:           string
-    price_delta:    number
-    calories_delta: number
-    image_url:      string
-}
-
-// Внутренние типы
-type Milk = {
-    id:             number
-    name:           string
-    price_delta:    number
-    calories_delta: number
-    image_url:      string
-}
-
-type SyrupsAndAddons = {
-    id:             number
-    name:           string
-    volume:         number
-    unit:           string
-    price_delta:    number
-    calories_delta: number
-    image_url:      string
-}
 
 interface CustomizationPopUpProps {
     isOpen: boolean
@@ -53,24 +10,24 @@ interface CustomizationPopUpProps {
     product: PopUpProductInfo | null
     variants: PopUpVariant[]
     options: PopUpOption[]
-    addCart: (p: PopUpVariant, m: Milk | null, o: SyrupsAndAddons[]) => void
+    addCart: (p: PopUpProductInfo, v: PopUpVariant, m: Milk | null, o: PopUpOption[]) => void
 }
 
 export default function CustomizationPopUp({ isOpen, onClose, product, variants, options, addCart }: CustomizationPopUpProps) {
     const [selectedVariant, setSelectedVariant] = useState<PopUpVariant | null>(null)
 
     const [milk, setMilk] = useState<Milk[]>([])
-    const [syrups, setSyrups] = useState<SyrupsAndAddons[]>([])
-    const [addons, setAddons] = useState<SyrupsAndAddons[]>([])
+    const [syrups, setSyrups] = useState<PopUpOption[]>([])
+    const [addons, setAddons] = useState<PopUpOption[]>([])
 
     const [selectedMilk, setSelectedMilk] = useState<Milk | null>(null)
-    const [selectedSyrupsAndAddons, setSelectedSyrupsAndAddons] = useState<SyrupsAndAddons[]>([])
+    const [selectedSyrupsAndAddons, setSelectedSyrupsAndAddons] = useState<PopUpOption[]>([])
     const [totalCount, setTotalCount] = useState(0) // Количество выбранных сиропов и аддонов (не больше 3)
 
     const optionsKcalDelta = selectedSyrupsAndAddons.reduce((sum, item) => sum + item.calories_delta, 0)
     const optionsPriceDelta = selectedSyrupsAndAddons.reduce((sum, item) => sum + item.price_delta, 0)
 
-    const handleOptionChange = (option: SyrupsAndAddons, action: 'add' | 'remove') => {
+    const handleOptionChange = (option: PopUpOption, action: 'add' | 'remove') => {
         setSelectedSyrupsAndAddons(prev => {
             if (action === 'add') {
                 return [...prev, option]
@@ -250,8 +207,8 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
                                 onClick={() => {
                                     const isMilkValid = milk.length === 0 || selectedMilk !== null
 
-                                    if (selectedVariant && isMilkValid) {
-                                        addCart(selectedVariant, selectedMilk, selectedSyrupsAndAddons)
+                                    if (product && selectedVariant && isMilkValid) {
+                                        addCart(product!, selectedVariant, selectedMilk, selectedSyrupsAndAddons)
                                     }
                                 }}>
                                     +

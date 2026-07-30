@@ -1,26 +1,18 @@
 import { useState, useEffect } from "react"
 
-type SyrupsAndAddons = {
-    id:             number
-    name:           string
-    volume:         number
-    unit:           string
-    price_delta:    number
-    calories_delta: number
-    image_url:      string
-}
+import type { PopUpOption } from '../types'
 
 interface SyrupAndAddonChooserProps {
-    syrupsAndAddons: SyrupsAndAddons[]
+    syrupsAndAddons: PopUpOption[]
     totalCount: number
     onTotalCountChange: (newTotal: number) => void
-    onChange: (option: SyrupsAndAddons, action: 'add' | 'remove') => void
+    onChange: (option: PopUpOption, action: 'add' | 'remove') => void
 }
 
 export default function SyrupAndAddonChooser({ syrupsAndAddons, totalCount, onTotalCountChange, onChange }: SyrupAndAddonChooserProps) {
     const [counts, setCounts] = useState<Record<number, number>>({})
 
-    const handleIncrement = (item: SyrupsAndAddons) => {
+    const handleIncrement = (item: PopUpOption) => {
         if (totalCount >= 3) return
 
         setCounts(prev => ({
@@ -32,7 +24,7 @@ export default function SyrupAndAddonChooser({ syrupsAndAddons, totalCount, onTo
         onChange(item, 'add')
     }
 
-    const handleDecrement = (item: SyrupsAndAddons) => {
+    const handleDecrement = (item: PopUpOption) => {
         const currentItemCount = counts[item.id] || 0
         if (currentItemCount <= 0) return
 

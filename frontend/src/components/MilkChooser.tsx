@@ -1,12 +1,5 @@
 import { useEffect, useState } from "react"
-
-type Milk = {
-    id:             number
-    name:           string
-    price_delta:    number
-    calories_delta: number
-    image_url:      string
-}
+import type { Milk } from '../types'
 
 interface MilkChooserProps {
     milkInfo: Milk[]
