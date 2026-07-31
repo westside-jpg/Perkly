@@ -5,9 +5,10 @@ interface BonusEnterProps {
     isBonusEnterOpen: boolean
     initialPhone: string
     onBonusEnterClose: (p: string) => void
+    onSwitchToRegistration: () => void
 }
 
-export default function BonusEnter({ isBonusEnterOpen, initialPhone, onBonusEnterClose } : BonusEnterProps) {
+export default function BonusEnter({ isBonusEnterOpen, initialPhone, onBonusEnterClose, onSwitchToRegistration } : BonusEnterProps) {
     const [digits, setDigits] = useState('')
 
     useEffect(() => {
@@ -54,19 +55,18 @@ export default function BonusEnter({ isBonusEnterOpen, initialPhone, onBonusEnte
 
 
             <button 
-                onClick={() => { onBonusEnterClose(digits) }}
+                onClick={() => { onBonusEnterClose(initialPhone) }}
                 className={`mb-4 flex h-[87px] w-[87px] shrink-0 items-center justify-center rounded-full 
                 bg-[#E4E2E2] shadow-md active:scale-90 transition-all duration-300 
                 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer
                 ${isBonusEnterOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"}`}
             >
-                <img alt="Закрыть" src="/elements/close.png" className="w-8 h-8 object-contain"
-                onClick={() => { onBonusEnterClose(initialPhone) }} />
+                <img alt="Закрыть" src="/elements/close.png" className="w-8 h-8 object-contain" />
             </button>
 
 
             <div 
-                className={`relative w-[700px] h-[950px] bg-[#E4E2E2] 
+                className={`relative w-[700px] h-[1000px] bg-[#E4E2E2] 
                 rounded-[80px] overflow-hidden isolate
                 transition-all duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]
                 ${isBonusEnterOpen ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-12 scale-95"}`}
@@ -86,7 +86,11 @@ export default function BonusEnter({ isBonusEnterOpen, initialPhone, onBonusEnte
                             {formatPhone(digits)}
                         </div>
 
-                        <button className="bg-[#CBCBCB] text-[#4E4E4E] cursor-pointer active:scale-90 transition-all duration-200 text-2xl px-10 py-3 rounded-full font-medium self-start">
+                        <button 
+                        onClick={() => { onSwitchToRegistration() }}
+                        className={`bg-[#CBCBCB] text-[#4E4E4E] cursor-pointer active:scale-90
+                        transition-all duration-200 text-2xl px-10 py-3 rounded-full font-medium self-start
+                        ${initialPhone.length == 10 ? "cursor-default pointer-events-none max-h-0 !m-0 !p-0 opacity-0" : ""}`}>
                             У меня нет аккаунта
                         </button>
                     </div>

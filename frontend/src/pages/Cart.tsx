@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import BonusEnter from '../components/BonusEnter'
 import { declinationWord } from '../utils/declination'
 import type { CartItem } from '../types'
+import BonusRegistration from '../components/BonusRegistration'
+import BonusVerification from '../components/BonusVerification'
+import { toast } from 'sonner'
 
 interface CartProps {
     cart: CartItem[]
@@ -32,15 +35,103 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
     const [isBonusVerificationOpen, setIsBonusVerificationOpen] = useState(false)
 
     const [phone, setPhone] = useState('')
+    const [bonusesCount, setBonusesCount] = useState(0)
+    const [bonusesLeft, setBonusesLeft] = useState(0)
 
-    const handleBonusEnterClose = (enteredPhone: string) => {
-        setIsBonusEnterOpen(false)
+    const handleBonusEnterClose = async (enteredPhone: string) => {
         setPhone(enteredPhone)
 
-        if (enteredPhone.length === 10) {
+        const response = await fetch('http://localhost:8080/api/user/login', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: phone }),
+            credentials: "include"
+        })
+        const data = await response.json()
+
+        if (response.ok) {
+            setBonusesCount(data["bonuses"])
             setBonusProgramState('notVerified')
+            setIsBonusEnterOpen(false)
         } else {
             setBonusProgramState('noNumber')
+            toast.error(data["error"])
+        }
+    }
+
+    const handleBonusRegistrationClose = async (enteredPhone: string) => {
+        setPhone(enteredPhone)
+
+        if (phone.length != 10) {
+            setPhone("")
+            setIsBonusRegistrationOpen(false)
+            return
+        }
+
+        const response = await fetch('http://localhost:8080/api/user/start-registration', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: phone }),
+            credentials: "include"
+        })
+        const data = await response.json()
+
+        if (response.ok) {
+            setIsBonusRegistrationOpen(false)
+            setIsBonusVerificationOpen(true)
+        } else {
+            toast.error(data["error"])
+        }
+    }
+
+    const handleBonusRegistrationVerificationClose = async (code: string) => {
+
+        if (phone.length != 10) {
+            setPhone("")
+            setIsBonusVerificationOpen(false)
+            return
+        }
+
+        const response = await fetch('http://localhost:8080/api/user/verify-registration', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: phone, code: code }),
+            credentials: "include"
+        })
+        const data = await response.json()
+
+        if (response.ok) {
+            setBonusesCount(data["bonuses"])
+            setBonusProgramState("notVerified")
+            setIsBonusVerificationOpen(false)
+            toast.success(data["message"])
+        } else {
+            toast.error(data["error"])
+        }
+    }
+
+    const handleBonusVerificationClose = async (code: string) => {
+
+        if (phone.length != 10) {
+            setIsBonusVerificationOpen(false)
+            return
+        }
+
+        const response = await fetch('http://localhost:8080/api/user/verify-registration', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: phone, code: code }),
+            credentials: "include"
+        })
+        const data = await response.json()
+
+        if (response.ok) {
+            setBonusesCount(data["bonuses"])
+            setBonusProgramState("notVerified")
+            setIsBonusVerificationOpen(false)
+            toast.success(data["message"])
+        } else {
+            toast.error(data["error"])
         }
     }
 
@@ -85,12 +176,30 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
                  <div className={`flex flex-row items-center gap-3 transition-all duration-200
                     ${bonusProgramState != 'noNumber' ? "opacity-100 cursor-pointer mb-3" : "opacity-0 pointer-events-none max-h-0 !m-0 !p-0"}`}>
                     <span className={`text-[20px] font-medium bg-[#CBCBCB] shrink-0
-                        text-[#4E4E4E] text-center px-12.5 py-3 rounded-full`}>
+                        text-[#4E4E4E] text-center px-12.5 py-3 rounded-full`}
+                        onClick={() => {
+                            if (bonusProgramState == "allDone") {
+                                setBonusProgramState("notVerified")
+                            } else {
+                                setIsBonusVerificationOpen(true)
+                            }
+                        }}>
                         Списать бонусы
                     </span>
                     <span className={`flex-1 text-[18px] font-medium
                         text-[#727171] w-full`}>
-                        На Вашем счете 432 бонуса
+                        {bonusProgramState == "notVerified" &&
+                        <>
+                            На Вашем счете
+                            {" "}
+                            {declinationWord(bonusesCount, "бонус", "бонуса", "бонусов")}
+                        </>}
+                        {bonusProgramState == "allDone" && 
+                        <>
+                            После покупки у вас останется
+                            {" "}
+                            {declinationWord(bonusesLeft, "бонус", "бонуса", "бонусов")}
+                        </>}
                     </span> 
                 </div>
             </div>
@@ -174,14 +283,43 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
             <div className={`fixed flex bottom-5 left-20 right-20 z-20 px-8`}>
                     <div className={`w-full bg-black text-white px-10 py-5 text-2xl text-center rounded-full
                     transition-all duration-300 active:scale-95 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer`}>
-                        К оплате • {totalCartPrice}₽
+                        К оплате
+                        {" • "}
+                        {bonusProgramState != "allDone" && totalCartPrice}
+                        {bonusProgramState == "allDone" && totalCartPrice + (bonusesLeft - bonusesCount)}
+                        ₽
                     </div>
             </div>
 
             <BonusEnter
             isBonusEnterOpen={isBonusEnterOpen} 
             initialPhone={phone}
-            onBonusEnterClose={handleBonusEnterClose}   />
+            onBonusEnterClose={handleBonusEnterClose}
+            onSwitchToRegistration={() => {
+                setIsBonusEnterOpen(false)
+                setIsBonusRegistrationOpen(true)
+                setPhone("")
+            }} />
+
+            <BonusRegistration 
+            isBonusRegistrationOpen={isBonusRegistrationOpen}
+            initialPhone={phone}
+            onBonusRegistrationClose={() => {handleBonusRegistrationClose}} />
+
+            {/* Модалка ввода кода при регистрации */}
+            {bonusProgramState == 'noNumber' && <BonusVerification
+            isBonusVerificationOpen={isBonusVerificationOpen}
+            initialPhone={phone}
+            onBonusVerificationClose={() => {handleBonusRegistrationVerificationClose}}
+            />}
+
+            {/* Модалка ввода кода при списании бонусов */}
+            {bonusProgramState == 'notVerified' && <BonusVerification
+            isBonusVerificationOpen={isBonusVerificationOpen}
+            initialPhone={phone}
+            onBonusVerificationClose={() => {}}
+            />}
+
 
         </div>
     )

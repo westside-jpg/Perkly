@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/gin-contrib/cors"
@@ -27,6 +28,12 @@ func main() {
 
 	_ = seed.SetupSeeds(db)
 
+	rdb := database.NewRedisClient()
+
+	if err := rdb.Ping(context.Background()).Err(); err != nil {
+		log.Fatalf("Не удалось подключиться к Redis: %v", err)
+	}
+
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
@@ -36,7 +43,7 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	routers.SetupRoutes(r, db)
+	routers.SetupRoutes(r, db, rdb)
 
 	err = r.Run()
 	if err != nil {

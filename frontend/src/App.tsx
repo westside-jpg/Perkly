@@ -155,7 +155,7 @@ function App() {
     <KioskFrame>
 
       <Toaster
-        position="bottom-center"
+        position="top-center"
         style={{ fontFamily: "MyFont, sans-serif" }}
       />
 

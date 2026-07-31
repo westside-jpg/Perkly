@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 /*
@@ -46,7 +47,7 @@ func CreateTables(db *pgxpool.Pool) error {
 		CREATE TABLE IF NOT EXISTS users (
 			id SERIAL PRIMARY KEY,
 			phone TEXT UNIQUE NOT NULL,
-			points INTEGER NOT NULL DEFAULT 0,
+			bonuses INTEGER NOT NULL DEFAULT 200,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		);
 
@@ -143,4 +144,12 @@ func DropTables(db *pgxpool.Pool) error {
 	)
 
 	return err
+}
+
+func NewRedisClient() *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
 }
