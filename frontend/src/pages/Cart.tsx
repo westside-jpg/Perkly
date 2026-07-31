@@ -86,7 +86,7 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
 
     const handleBonusRegistrationVerificationClose = async (code: string) => {
 
-        if (phone.length != 10) {
+        if ((phone.length != 10) || (code.length != 6)) {
             setPhone("")
             setIsBonusVerificationOpen(false)
             return
@@ -110,30 +110,79 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
         }
     }
 
-    const handleBonusVerificationClose = async (code: string) => {
+    // Для отправки кода при нажатии на кнопку списать бонусы
+    const handleBonusVerification = async () => {
 
         if (phone.length != 10) {
-            setIsBonusVerificationOpen(false)
+            toast.error("Введите номер полностью")
             return
         }
 
-        const response = await fetch('http://localhost:8080/api/user/verify-registration', {
+        const response = await fetch('http://localhost:8080/api/user/start-verification', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: phone, code: code }),
+            body: JSON.stringify({ phone: phone }),
             credentials: "include"
         })
         const data = await response.json()
 
         if (response.ok) {
-            setBonusesCount(data["bonuses"])
-            setBonusProgramState("notVerified")
+            setIsBonusVerificationOpen(true)
+        } else {
+            toast.error(data["error"])
+        }
+    }
+    
+    // Валидация кода для списания бонусов
+    const handleBonusVerificationClose = async (code: string) => {
+
+        if ((phone.length != 10) || (code.length != 6)) {
             setIsBonusVerificationOpen(false)
+            return
+        }
+
+        const response = await fetch('http://localhost:8080/api/user/verify', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: phone, code: code, price: totalCartPrice}),
+            credentials: "include"
+        })
+        const data = await response.json()
+
+        if (response.ok) {
+            setBonusProgramState("allDone")
+            setIsBonusVerificationOpen(false)
+            setBonusesLeft(data["bonuses_left"])
+        } else {
+            toast.error(data["error"])
+        }
+    }
+
+    // Отмена списания бонусов (повторное нажатие на кнопку)
+    const handleBonusVerificationCancel = async () => {
+
+        if (phone.length != 10) {
+            toast.error("Введите номер полностью")
+            return
+        }
+
+        const response = await fetch('http://localhost:8080/api/user/verify/cancel', {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: phone }),
+            credentials: "include"
+        })
+        const data = await response.json()
+
+        if (response.ok) {
+            setBonusProgramState("notVerified")
+            setBonusesLeft(0)
             toast.success(data["message"])
         } else {
             toast.error(data["error"])
         }
     }
+
 
     return (
         <div className={`flex flex-col items-center max-h-[1060px] overflow-y-auto pb-27 scrollbar-hide`}>
@@ -179,9 +228,9 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
                         text-[#4E4E4E] text-center px-12.5 py-3 rounded-full`}
                         onClick={() => {
                             if (bonusProgramState == "allDone") {
-                                setBonusProgramState("notVerified")
+                                handleBonusVerificationCancel()
                             } else {
-                                setIsBonusVerificationOpen(true)
+                                handleBonusVerification()
                             }
                         }}>
                         Списать бонусы
@@ -303,21 +352,20 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
 
             <BonusRegistration 
             isBonusRegistrationOpen={isBonusRegistrationOpen}
-            initialPhone={phone}
-            onBonusRegistrationClose={() => {handleBonusRegistrationClose}} />
+            onBonusRegistrationClose={handleBonusRegistrationClose} />
 
             {/* Модалка ввода кода при регистрации */}
             {bonusProgramState == 'noNumber' && <BonusVerification
             isBonusVerificationOpen={isBonusVerificationOpen}
             initialPhone={phone}
-            onBonusVerificationClose={() => {handleBonusRegistrationVerificationClose}}
+            onBonusVerificationClose={handleBonusRegistrationVerificationClose}
             />}
 
             {/* Модалка ввода кода при списании бонусов */}
             {bonusProgramState == 'notVerified' && <BonusVerification
             isBonusVerificationOpen={isBonusVerificationOpen}
             initialPhone={phone}
-            onBonusVerificationClose={() => {}}
+            onBonusVerificationClose={handleBonusVerificationClose}
             />}
 
 

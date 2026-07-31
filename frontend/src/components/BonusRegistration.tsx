@@ -3,11 +3,10 @@ import Keypad from './Keypad'
 
 interface BonusRegistrationProps {
     isBonusRegistrationOpen: boolean
-    initialPhone: string
-    onBonusRegistrationClose: () => void
+    onBonusRegistrationClose: (phone: string) => void
 }
 
-export default function BonusRegistration({isBonusRegistrationOpen, initialPhone, onBonusRegistrationClose } : BonusRegistrationProps) {
+export default function BonusRegistration({isBonusRegistrationOpen, onBonusRegistrationClose } : BonusRegistrationProps) {
     const [digits, setDigits] = useState('')
 
     const formatPhone = (val: string) => {
@@ -34,7 +33,7 @@ export default function BonusRegistration({isBonusRegistrationOpen, initialPhone
 
     useEffect(() => {
         if (digits.length == 10) {
-
+            onBonusRegistrationClose(digits)
         }
     }, [digits])
 
@@ -49,8 +48,8 @@ export default function BonusRegistration({isBonusRegistrationOpen, initialPhone
 
             <button 
                 onClick={() => { 
-                    onBonusRegistrationClose()
                     setDigits("")
+                    onBonusRegistrationClose(digits)
                  }}
                 className={`mb-4 flex h-[87px] w-[87px] shrink-0 items-center justify-center rounded-full 
                 bg-[#E4E2E2] shadow-md active:scale-90 transition-all duration-300 

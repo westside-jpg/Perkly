@@ -4,7 +4,7 @@ import Keypad from './Keypad'
 interface BonusVerificationProps {
     isBonusVerificationOpen: boolean
     initialPhone: string
-    onBonusVerificationClose: () => void
+    onBonusVerificationClose: (code: string) => void
 }
 
 export default function BonusVerification({isBonusVerificationOpen, initialPhone, onBonusVerificationClose } : BonusVerificationProps) {
@@ -32,6 +32,12 @@ export default function BonusVerification({isBonusVerificationOpen, initialPhone
         setDigits(prev => prev.slice(0, -1))
     }
 
+    useEffect(() => {
+        if (digits.length == 6) {
+            onBonusVerificationClose(digits)
+        }
+    }, [digits])
+
     return (
         <div 
             className={`absolute inset-0 z-50 flex flex-col items-center justify-center 
@@ -43,8 +49,8 @@ export default function BonusVerification({isBonusVerificationOpen, initialPhone
 
             <button 
                 onClick={() => { 
-                    onBonusVerificationClose()
                     setDigits("")
+                    onBonusVerificationClose(digits)
                  }}
                 className={`mb-4 flex h-[87px] w-[87px] shrink-0 items-center justify-center rounded-full 
                 bg-[#E4E2E2] shadow-md active:scale-90 transition-all duration-300 
@@ -89,7 +95,7 @@ export default function BonusVerification({isBonusVerificationOpen, initialPhone
                         </div>
 
                         <button 
-                        onClick={() => {  }}
+                        onClick={()  {  }}
                         className="bg-[#CBCBCB] text-[#4E4E4E] cursor-pointer mt-5 active:scale-90 transition-all duration-200 text-2xl px-10 py-3 rounded-full font-medium">
                             Запросить новый код
                         </button>

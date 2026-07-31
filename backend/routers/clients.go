@@ -9,6 +9,7 @@ import (
 	"time"
 	"log"
 	"errors"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -20,9 +21,15 @@ type User struct {
 	Phone string `json:"phone"`
 }
 
-type Verification struct {
+type Registration struct {
 	Phone string `json:"phone"`
 	Code string `json:"code"`
+}
+
+type ApplyBonuses struct {
+	Phone string `json:"phone"`
+	Code string `json:"code"`
+	Price int `json:"price"`
 }
 
 func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
@@ -180,6 +187,13 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			})
 			return
 		}
+
+		if len(strings.TrimSpace(req.Phone)) != 10 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Введите номер полностью",
+			})
+			return
+		}
 		
 		var bonuses int
 		err = db.QueryRow(
@@ -219,11 +233,18 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			})
 			return
 		}
+
+		if len(strings.TrimSpace(req.Phone)) != 10 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Введите номер полностью",
+			})
+			return
+		}
 		
 		var isExist bool
 		err = db.QueryRow(
 			context.Background(),
-			`SELECT EXIST(
+			`SELECT EXISTS(
 				SELECT 1
 				FROM users 
 				WHERE phone = $1
@@ -282,12 +303,19 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	})
 
 	r.POST("api/user/verify-registration", func(c *gin.Context) {
-		var req Verification
+		var req Registration
 		err := c.ShouldBindJSON(&req)
 
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "Неправильный запрос",
+			})
+			return
+		}
+
+		if len(strings.TrimSpace(req.Phone)) != 10 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Введите номер полностью",
 			})
 			return
 		}
@@ -348,6 +376,210 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Аккаунт успешно создан",
 			"bonuses": 200,
+		})
+
+	})
+
+	r.POST("api/user/start-verification", func(c *gin.Context) {
+		var req User
+		err := c.ShouldBindJSON(&req)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Неправильный запрос",
+			})
+			return
+		}
+
+		if len(strings.TrimSpace(req.Phone)) != 10 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Введите номер полностью",
+			})
+			return
+		}
+
+		var exists bool
+        err = db.QueryRow(
+			context.Background(),
+			`SELECT EXISTS(
+				SELECT 1
+				FROM users
+				WHERE phone = $1
+			)`, req.Phone).Scan(&exists)
+
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{
+                "error": "Ошибка базы данных",
+            })
+            return
+        }
+
+		if !exists {
+			c.JSON(http.StatusNotFound, gin.H{
+                "error": "Пользователь не найден",
+            })
+            return
+		}
+
+		n, err := rand.Int(rand.Reader, big.NewInt(1000000))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Не удалось сгенерировать код",
+			})
+			return
+		}
+
+		code := fmt.Sprintf("%06d", n.Int64())
+
+		codeKey := fmt.Sprintf("bonuses:code:%s", req.Phone)
+		attemptsKey := fmt.Sprintf("bonuses:attempts:%s", req.Phone)
+		ttl := 5 * time.Minute
+
+		if err := rdb.Set(c.Request.Context(), attemptsKey, 5, ttl).Err(); err != nil {
+			log.Printf("Ошибка сохранения количества попыток в Redis: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Не удалось сохранить количество попыток",
+			})
+			return
+		}
+
+		if err := rdb.Set(c.Request.Context(), codeKey, code, ttl).Err(); err != nil {
+			log.Printf("Ошибка сохранения кода в Redis: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Не удалось сохранить код подтверждения",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{})
+		fmt.Printf("Код подтверждения списания бонусов: %s", code)
+
+	})
+
+	r.POST("api/user/verify", func(c *gin.Context) {
+		var req ApplyBonuses
+		err := c.ShouldBindJSON(&req)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Неправильный запрос",
+			})
+			return
+		}
+
+		if len(strings.TrimSpace(req.Phone)) != 10 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Введите номер полностью",
+			})
+			return
+		}
+
+		codeKey := fmt.Sprintf("bonuses:code:%s", req.Phone)
+		attemptsKey := fmt.Sprintf("bonuses:attempts:%s", req.Phone)
+
+		savedCode, err := rdb.Get(context.Background(), codeKey).Result()
+		if err == redis.Nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Срок действия кода истек",
+			})
+			return
+		} else if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка базы данных",
+			})
+			return
+		}
+
+		if savedCode != req.Code {
+			attemptsLeft, err := rdb.Decr(context.Background(), attemptsKey).Result()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера"})
+				return
+			}
+
+			if attemptsLeft <= 0 {
+				rdb.Del(context.Background(), codeKey, attemptsKey)
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "Превышено количество попыток ввода. Запросите код заново",
+				})
+				return
+        	}
+
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("Неверный код. Осталось попыток: %d", attemptsLeft),
+			})
+			return
+		}
+
+		rdb.Del(context.Background(), codeKey, attemptsKey)
+
+		bonusKey := fmt.Sprintf("bonuses:apply:%s", req.Phone)
+		if err := rdb.Set(c.Request.Context(), bonusKey, true, 15 * time.Minute).Err(); err != nil {
+			log.Printf("Ошибка сохранения кода в Redis: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Не удалось сохранить информацию про бонусы",
+			})
+			return
+		}
+
+		var bonuses int
+		err = db.QueryRow(
+			context.Background(),
+			`SELECT bonuses FROM users WHERE phone = $1`,
+			req.Phone,
+		).Scan(&bonuses)
+
+		if err != nil {
+			log.Printf("Ошибка получения бонусов из БД: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка базы данных",
+			})
+			return
+		}
+
+		var bonusesLeft int
+
+		if (req.Price >= bonuses) {
+			bonusesLeft = 0
+		} else {
+			bonusesLeft = bonuses - req.Price
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"bonuses_left": bonusesLeft,
+		})
+		
+	})
+
+	r.POST("api/user/verify/cancel", func(c *gin.Context) {
+		var req User
+		err := c.ShouldBindJSON(&req)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Неправильный запрос",
+			})
+			return
+		}
+
+		if len(strings.TrimSpace(req.Phone)) != 10 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Введите номер полностью",
+			})
+			return
+		}
+
+		bonusKey := fmt.Sprintf("bonuses:apply:%s", req.Phone)
+		if err := rdb.Del(context.Background(), bonusKey).Err(); err != nil {
+			log.Printf("Ошибка удаления записи (отмена списания бонусов) в Redis: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Не удалось отменить списание бонусов. попробуйте еще раз",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Списание бонусов отменено",
 		})
 
 	})
