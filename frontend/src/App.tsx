@@ -95,6 +95,12 @@ function App() {
     setCart(prevCart => prevCart.filter((_, index) => index !== indexToRemove))
   }
 
+  useEffect(() => {
+    if (cart.length == 0) {
+      setScreen('catalog')
+    }
+  }, [cart])
+
   // --- Скролл, и всё, что с ним связано ---
   const sectionRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)

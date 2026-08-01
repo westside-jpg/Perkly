@@ -4,11 +4,12 @@ import Keypad from './Keypad'
 interface BonusEnterProps {
     isBonusEnterOpen: boolean
     initialPhone: string
+    bonusProgramState: string
     onBonusEnterClose: (p: string) => void
     onSwitchToRegistration: () => void
 }
 
-export default function BonusEnter({ isBonusEnterOpen, initialPhone, onBonusEnterClose, onSwitchToRegistration } : BonusEnterProps) {
+export default function BonusEnter({ isBonusEnterOpen, initialPhone, bonusProgramState, onBonusEnterClose, onSwitchToRegistration } : BonusEnterProps) {
     const [digits, setDigits] = useState('')
 
     useEffect(() => {
@@ -90,7 +91,7 @@ export default function BonusEnter({ isBonusEnterOpen, initialPhone, onBonusEnte
                         onClick={() => { onSwitchToRegistration() }}
                         className={`bg-[#CBCBCB] text-[#4E4E4E] cursor-pointer active:scale-90
                         transition-all duration-200 text-2xl px-10 py-3 rounded-full font-medium self-start
-                        ${initialPhone.length == 10 ? "cursor-default pointer-events-none max-h-0 !m-0 !p-0 opacity-0" : ""}`}>
+                        ${bonusProgramState != 'noNumber' ? "cursor-default pointer-events-none max-h-0 !m-0 !p-0 opacity-0" : ""}`}>
                             У меня нет аккаунта
                         </button>
                     </div>

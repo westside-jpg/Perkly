@@ -198,9 +198,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 		var bonuses int
 		err = db.QueryRow(
 			context.Background(),
-			`SELECT bonuses
-			FROM users 
-			WHERE phone = $1`,
+			"SELECT bonuses FROM users WHERE phone = $1",
 			req.Phone,
 		).Scan(&bonuses)
 		
@@ -280,6 +278,9 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 		codeKey := fmt.Sprintf("auth:code:%s", req.Phone)
 		attemptsKey := fmt.Sprintf("auth:attempts:%s", req.Phone)
 		ttl := 5 * time.Minute
+
+		// Отчистка старого кода, если пользователь перезапросил
+		rdb.Del(context.Background(), codeKey, attemptsKey)
 
 		if err := rdb.Set(c.Request.Context(), attemptsKey, 5, ttl).Err(); err != nil {
 			log.Printf("Ошибка сохранения количества попыток в Redis: %v", err)
@@ -435,6 +436,9 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 		attemptsKey := fmt.Sprintf("bonuses:attempts:%s", req.Phone)
 		ttl := 5 * time.Minute
 
+		// Отчистка старого кода, если пользователь перезапросил
+		rdb.Del(context.Background(), codeKey, attemptsKey)
+
 		if err := rdb.Set(c.Request.Context(), attemptsKey, 5, ttl).Err(); err != nil {
 			log.Printf("Ошибка сохранения количества попыток в Redis: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -537,16 +541,8 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			return
 		}
 
-		var bonusesLeft int
-
-		if (req.Price >= bonuses) {
-			bonusesLeft = 0
-		} else {
-			bonusesLeft = bonuses - req.Price
-		}
-
 		c.JSON(http.StatusOK, gin.H{
-			"bonuses_left": bonusesLeft,
+			"bonuses": bonuses,
 		})
 		
 	})

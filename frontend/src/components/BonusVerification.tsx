@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import Keypad from './Keypad'
+import { toast } from 'sonner'
 
 interface BonusVerificationProps {
     isBonusVerificationOpen: boolean
     initialPhone: string
+    resendCode: (phone?: string) => void
     onBonusVerificationClose: (code: string) => void
 }
 
-export default function BonusVerification({isBonusVerificationOpen, initialPhone, onBonusVerificationClose } : BonusVerificationProps) {
+export default function BonusVerification({isBonusVerificationOpen, initialPhone, onBonusVerificationClose, resendCode } : BonusVerificationProps) {
     const [digits, setDigits] = useState('')
 
     const formatPhone = (val: string) => {
@@ -95,7 +97,10 @@ export default function BonusVerification({isBonusVerificationOpen, initialPhone
                         </div>
 
                         <button 
-                        onClick={()  {  }}
+                        onClick={() => { 
+                            resendCode()
+                            toast.success("Код успешно переотправлен")
+                         }}
                         className="bg-[#CBCBCB] text-[#4E4E4E] cursor-pointer mt-5 active:scale-90 transition-all duration-200 text-2xl px-10 py-3 rounded-full font-medium">
                             Запросить новый код
                         </button>

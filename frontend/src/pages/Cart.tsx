@@ -36,15 +36,31 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
 
     const [phone, setPhone] = useState('')
     const [bonusesCount, setBonusesCount] = useState(0)
-    const [bonusesLeft, setBonusesLeft] = useState(0)
+
+    // Сколько бонусов максимум мы можем списать для текущей цены корзины
+    const usedBonuses = bonusProgramState === 'allDone' 
+        ? Math.min(totalCartPrice, bonusesCount) 
+        : 0
+
+    // Итоговая цена к оплате
+    const finalPrice = Math.max(0, totalCartPrice - usedBonuses)
+
+    // Сколько останется бонусов у юзера после покупки
+    const bonusesLeft = bonusProgramState === 'allDone' 
+        ? Math.max(0, bonusesCount - totalCartPrice) 
+        : bonusesCount
 
     const handleBonusEnterClose = async (enteredPhone: string) => {
+        if (enteredPhone == phone) {
+            setIsBonusEnterOpen(false)
+            return
+        }
         setPhone(enteredPhone)
 
         const response = await fetch('http://localhost:8080/api/user/login', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: phone }),
+            body: JSON.stringify({ phone: enteredPhone }),
             credentials: "include"
         })
         const data = await response.json()
@@ -59,10 +75,11 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
         }
     }
 
-    const handleBonusRegistrationClose = async (enteredPhone: string) => {
-        setPhone(enteredPhone)
+    const handleBonusRegistrationClose = async (enteredPhone?: string) => {
+        const currentPhone = enteredPhone ?? phone
+        setPhone(currentPhone)
 
-        if (phone.length != 10) {
+        if (currentPhone.length != 10) {
             setPhone("")
             setIsBonusRegistrationOpen(false)
             return
@@ -71,7 +88,7 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
         const response = await fetch('http://localhost:8080/api/user/start-registration', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: phone }),
+            body: JSON.stringify({ phone: currentPhone }),
             credentials: "include"
         })
         const data = await response.json()
@@ -111,9 +128,11 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
     }
 
     // Для отправки кода при нажатии на кнопку списать бонусы
-    const handleBonusVerification = async () => {
+    const handleBonusVerification = async (enteredPhone?: string) => {
+        const currentPhone = enteredPhone ?? phone
+        setPhone(currentPhone)
 
-        if (phone.length != 10) {
+        if (currentPhone.length != 10) {
             toast.error("Введите номер полностью")
             return
         }
@@ -121,7 +140,7 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
         const response = await fetch('http://localhost:8080/api/user/start-verification', {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: phone }),
+            body: JSON.stringify({ phone: currentPhone }),
             credentials: "include"
         })
         const data = await response.json()
@@ -152,7 +171,7 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
         if (response.ok) {
             setBonusProgramState("allDone")
             setIsBonusVerificationOpen(false)
-            setBonusesLeft(data["bonuses_left"])
+            setBonusesCount(data["bonuses"])
         } else {
             toast.error(data["error"])
         }
@@ -160,6 +179,9 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
 
     // Отмена списания бонусов (повторное нажатие на кнопку)
     const handleBonusVerificationCancel = async () => {
+        if (bonusProgramState != 'allDone') {
+            return
+        }
 
         if (phone.length != 10) {
             toast.error("Введите номер полностью")
@@ -175,13 +197,25 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
         const data = await response.json()
 
         if (response.ok) {
-            setBonusProgramState("notVerified")
-            setBonusesLeft(0)
             toast.success(data["message"])
         } else {
             toast.error(data["error"])
         }
     }
+
+    useEffect(() => {
+        if (cart.length == 0) {
+            if (bonusProgramState == 'allDone') {
+                handleBonusVerificationCancel()
+            }
+            setBonusProgramState('noNumber')
+            setIsBonusEnterOpen(false)
+            setIsBonusRegistrationOpen(false)
+            setIsBonusVerificationOpen(false)
+            setPhone('')
+            setBonusesCount(0)
+        }
+    }, [cart])
 
 
     return (
@@ -198,37 +232,62 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
             
             <div className={`flex flex-col self-start gap-3`}>
                  <div className={`flex flex-row items-center mt-3 gap-3 transition-all duration-200`}>
-                    <span className={`text-[20px] font-medium shrink-0
+                    <span className={`text-[20px] font-medium shrink-0 cursor-pointer
                         text-center px-10 py-3 rounded-full transition-all duration-200
-                        ${(bonusProgramState == 'noNumber') || (bonusProgramState == 'notVerified')
-                            ? "cursor-pointer active:scale-90"
-                            : "cursor-default pointer-events-none"}
                         ${bonusProgramState == 'noNumber'
                              ? "bg-[#CBCBCB] text-[#4E4E4E]" 
                              : "bg-black text-white"}`}
                         onClick={() => { 
-                            setIsBonusEnterOpen(true)
+                            if (bonusProgramState == 'noNumber') {
+                                setIsBonusEnterOpen(true)
+                            } else if (bonusProgramState == 'allDone') {
+                                handleBonusVerificationClose("0")
+                                setPhone("")
+                                setBonusProgramState('noNumber')
+                            } else {
+                                setPhone("")
+                                setBonusProgramState('noNumber')
+                            }
+                            
                         }}>
                         Бонусная система
                     </span>
                     <span className={`flex-1 text-[18px] font-medium
                         text-[#727171] w-full`}>
-                        Мы начислим
-                        {" "}
-                        {Math.floor(totalCartPrice / 10)}
-                        {" "}
-                        {declinationWord(Math.floor(totalCartPrice / 10), "бонус", "бонуса", "бонусов")}
-                        {" "}
-                        за этот заказ
+                        {bonusProgramState == "noNumber" &&
+                        <>
+                            Вы можете получить
+                            {" "}
+                            {Math.floor(finalPrice / 10)}
+                            {" "}
+                            {declinationWord(Math.floor(finalPrice / 10), "бонус", "бонуса", "бонусов")}
+                            {" "}
+                            за этот заказ
+                        </>}
+                        {bonusProgramState != "noNumber" &&
+                        <>
+                            Мы начислим
+                            {" "}
+                            {Math.floor(finalPrice / 10)}
+                            {" "}
+                            {declinationWord(Math.floor(finalPrice / 10), "бонус", "бонуса", "бонусов")}
+                            {" "}
+                            за этот заказ
+                        </>}
+
                     </span> 
                 </div>
                  <div className={`flex flex-row items-center gap-3 transition-all duration-200
                     ${bonusProgramState != 'noNumber' ? "opacity-100 cursor-pointer mb-3" : "opacity-0 pointer-events-none max-h-0 !m-0 !p-0"}`}>
                     <span className={`text-[20px] font-medium bg-[#CBCBCB] shrink-0
-                        text-[#4E4E4E] text-center px-12.5 py-3 rounded-full`}
+                        text-[#4E4E4E] text-center px-12.5 py-3 rounded-full transition-all duration-200
+                        ${bonusProgramState == 'allDone'
+                             ? "bg-black text-white" 
+                             : "bg-[#CBCBCB] text-[#4E4E4E]"}`}
                         onClick={() => {
                             if (bonusProgramState == "allDone") {
                                 handleBonusVerificationCancel()
+                                setBonusProgramState("notVerified")
                             } else {
                                 handleBonusVerification()
                             }
@@ -241,13 +300,17 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
                         <>
                             На Вашем счете
                             {" "}
+                            {bonusesCount}
+                            {" "}
                             {declinationWord(bonusesCount, "бонус", "бонуса", "бонусов")}
                         </>}
                         {bonusProgramState == "allDone" && 
                         <>
                             После покупки у вас останется
                             {" "}
-                            {declinationWord(bonusesLeft, "бонус", "бонуса", "бонусов")}
+                            {bonusesLeft + Math.floor(finalPrice / 10)}
+                            {" "}
+                            {declinationWord((bonusesLeft + Math.floor(finalPrice / 10)), "бонус", "бонуса", "бонусов")}
                         </>}
                     </span> 
                 </div>
@@ -334,8 +397,7 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
                     transition-all duration-300 active:scale-95 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer`}>
                         К оплате
                         {" • "}
-                        {bonusProgramState != "allDone" && totalCartPrice}
-                        {bonusProgramState == "allDone" && totalCartPrice + (bonusesLeft - bonusesCount)}
+                        {finalPrice}
                         ₽
                     </div>
             </div>
@@ -343,6 +405,7 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
             <BonusEnter
             isBonusEnterOpen={isBonusEnterOpen} 
             initialPhone={phone}
+            bonusProgramState={bonusProgramState}
             onBonusEnterClose={handleBonusEnterClose}
             onSwitchToRegistration={() => {
                 setIsBonusEnterOpen(false)
@@ -358,6 +421,7 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
             {bonusProgramState == 'noNumber' && <BonusVerification
             isBonusVerificationOpen={isBonusVerificationOpen}
             initialPhone={phone}
+            resendCode={handleBonusRegistrationClose}
             onBonusVerificationClose={handleBonusRegistrationVerificationClose}
             />}
 
@@ -365,6 +429,7 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
             {bonusProgramState == 'notVerified' && <BonusVerification
             isBonusVerificationOpen={isBonusVerificationOpen}
             initialPhone={phone}
+            resendCode={handleBonusVerification}
             onBonusVerificationClose={handleBonusVerificationClose}
             />}
 
