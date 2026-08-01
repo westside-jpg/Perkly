@@ -242,6 +242,7 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
                                 setIsBonusEnterOpen(true)
                             } else if (bonusProgramState == 'allDone') {
                                 handleBonusVerificationClose("0")
+                                handleBonusVerificationCancel()
                                 setPhone("")
                                 setBonusProgramState('noNumber')
                             } else {

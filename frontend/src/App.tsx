@@ -169,8 +169,6 @@ function App() {
         <p className='font-extrabold text-6xl'>PERKLY</p>
       </div>
 
-
-
         {/* -------------- КАТАЛОГ --------------  */}
         <div className={`transition-all duration-300
           ${screen == 'catalog' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
@@ -217,7 +215,7 @@ function App() {
 
           <div className={`sticky flex gap-3 flex-row bottom-5 z-20 duration-300 transition-all
             ${cart.length > 0 ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-              <div className={`bg-black text-white px-8 py-5 text-xl text-center rounded-full`}>
+              <div className={`bg-[#CBCBCB] text-[#4E4E4E] px-8 py-5 text-xl text-center rounded-full`}>
                 {cart.length}
                 {" "}
                 {declinationWord(cart.length, "товар", "товара", "товаров")}

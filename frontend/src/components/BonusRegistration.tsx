@@ -37,6 +37,12 @@ export default function BonusRegistration({isBonusRegistrationOpen, onBonusRegis
         }
     }, [digits])
 
+    useEffect(() => {
+        if (!isBonusRegistrationOpen) {
+            setDigits('')
+        }
+    }, [isBonusRegistrationOpen])
+
     return (
         <div 
             className={`absolute inset-0 z-50 flex flex-col items-center justify-center 
@@ -49,7 +55,7 @@ export default function BonusRegistration({isBonusRegistrationOpen, onBonusRegis
             <button 
                 onClick={() => { 
                     setDigits("")
-                    onBonusRegistrationClose(digits)
+                    onBonusRegistrationClose("")
                  }}
                 className={`mb-4 flex h-[87px] w-[87px] shrink-0 items-center justify-center rounded-full 
                 bg-[#E4E2E2] shadow-md active:scale-90 transition-all duration-300 
