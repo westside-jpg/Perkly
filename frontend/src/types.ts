@@ -54,3 +54,13 @@ export type CartItem = {
     milk: Milk | null
     options: PopUpOption[]
 }
+
+export type CartItemForCheckout = {
+  product_variant_id: number
+  option_ids: number[]
+}
+
+export type CheckoutRequest = {
+  phone: string
+  items: CartItemForCheckout[]
+}

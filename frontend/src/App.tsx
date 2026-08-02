@@ -4,15 +4,16 @@ import CategoriesTabs from './components/CategoriesTabs'
 import ProductCard from './components/ProductCard'
 import CustomizationPopUp from './components/CustomizationPopUp'
 import Cart from './pages/Cart'
+import Checkout from './pages/Checkout'
 import { declinationWord } from './utils/declination'
 import { Toaster } from 'sonner'
 import { toast } from 'sonner'
 
-import type { CartItem, PopUpProductInfo, PopUpVariant, Milk, PopUpOption, ProductCardAndCategories } from './types'
+import type { CartItem, PopUpProductInfo, PopUpVariant, Milk, PopUpOption, ProductCardAndCategories, CartItemForCheckout, CheckoutRequest } from './types'
 
 
 function App() {
-  const [screen, setScreen] = useState<'catalog' | 'cart'>('catalog')
+  const [screen, setScreen] = useState<'catalog' | 'cart' | 'checkout'>('catalog')
 
   const [results, setResults] = useState<ProductCardAndCategories[]>([])
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
@@ -21,6 +22,13 @@ function App() {
   const [popUpVariant, setPopUpVariant] = useState<PopUpVariant[]>([])
   const [popUpOption, setPopUpOption] = useState<PopUpOption[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
+
+  // Стейт для подъема из Cart
+  const [phone, setPhone] = useState("")
+
+  const [checkoutPrice, setCheckoutPrice] = useState(0)
+  const [orderUUID, setOrderUUID] = useState("")
+
 
   const totalCartPrice = cart.reduce((total, item) => {
     const milkPrice = item.milk?.price_delta ?? 0
@@ -93,6 +101,56 @@ function App() {
 
   const removeFromCart = (indexToRemove: number) => {
     setCart(prevCart => prevCart.filter((_, index) => index !== indexToRemove))
+  }
+
+  const handleCheckout = async () => {
+    try {
+          if (cart.length === 0) {
+            toast.error("Корзина пуста")
+            return
+          }
+
+          const formattedItems: CartItemForCheckout[] = cart.map(item => {
+              const optionIds: number[] = []
+
+              if (item.milk) {
+                optionIds.push(item.milk.id)
+              }
+
+              item.options.forEach(opt => {
+                optionIds.push(opt.id)
+              })
+
+              return {
+                product_variant_id: item.variant.id,
+                option_ids: optionIds
+              }
+        })
+
+        const payload: CheckoutRequest = {
+          phone: phone,
+          items: formattedItems
+        }
+
+        const response = await fetch("api/order/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+            credentials: "include"
+        })
+        const data = await response.json()
+
+        if (response.ok) {
+          setCheckoutPrice(data["final_price"])
+          setOrderUUID(data["order_uuid"])
+          setScreen('checkout')
+        } else {
+          toast.error(data["error"])
+        }
+    } catch (err) {
+        console.log("Ошибка сервера: ", err)
+        toast.error("Ошибка сервера")
+    }
   }
 
   useEffect(() => {
@@ -215,7 +273,7 @@ function App() {
 
           <div className={`sticky flex gap-3 flex-row bottom-5 z-20 duration-300 transition-all
             ${cart.length > 0 ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-              <div className={`bg-[#CBCBCB] text-[#4E4E4E] px-8 py-5 text-xl text-center rounded-full`}>
+              <div className={`bg-black text-white px-8 py-5 text-xl text-center rounded-full`}>
                 {cart.length}
                 {" "}
                 {declinationWord(cart.length, "товар", "товара", "товаров")}
@@ -237,9 +295,26 @@ function App() {
         <div className={`transition-all duration-300
           ${screen == 'cart' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
 
-            <Cart cart={cart} onBack={() => setScreen('catalog')} onRemove={removeFromCart}/>
+            <Cart cart={cart} 
+            onBack={() => setScreen('catalog')} 
+            onRemove={removeFromCart}
+            onUpdatePhone={setPhone}
+            onNext={handleCheckout}
+            />
 
         </div>
+
+        
+        {/* -------------- ЧЕКАУТ --------------  */}
+        <div className={`transition-all duration-300
+          ${screen == 'checkout' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
+
+            <Checkout checkoutPrice={checkoutPrice} onBack={() => { setScreen("cart") }}/>
+
+        </div>
+
+
+
 
 
 

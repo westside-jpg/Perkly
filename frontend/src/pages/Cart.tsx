@@ -10,9 +10,11 @@ interface CartProps {
     cart: CartItem[]
     onBack: () => void
     onRemove: (index: number) => void
+    onUpdatePhone: (phone: string) => void
+    onNext: () => void
 }
 
-export default function Cart({ cart, onBack, onRemove } : CartProps) {
+export default function Cart({ cart, onBack, onRemove, onUpdatePhone, onNext } : CartProps) {
     const totalCartPrice = cart.reduce((total, item) => {
         const milkPrice = item.milk?.price_delta ?? 0
         const optionsPrice = item.options.reduce((sum, opt) => sum + opt.price_delta, 0)
@@ -51,155 +53,183 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
         : bonusesCount
 
     const handleBonusEnterClose = async (enteredPhone: string) => {
-        if (enteredPhone == phone) {
-            setIsBonusEnterOpen(false)
-            return
-        }
-        setPhone(enteredPhone)
+        try {
+            if (enteredPhone == phone) {
+                setIsBonusEnterOpen(false)
+                return
+            }
+            setPhone(enteredPhone)
 
-        const response = await fetch('http://localhost:8080/api/user/login', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: enteredPhone }),
-            credentials: "include"
-        })
-        const data = await response.json()
+            const response = await fetch('http://localhost:8080/api/user/login', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: enteredPhone }),
+                credentials: "include"
+            })
+            const data = await response.json()
 
-        if (response.ok) {
-            setBonusesCount(data["bonuses"])
-            setBonusProgramState('notVerified')
-            setIsBonusEnterOpen(false)
-        } else {
-            setBonusProgramState('noNumber')
-            toast.error(data["error"])
+            if (response.ok) {
+                setBonusesCount(data["bonuses"])
+                setBonusProgramState('notVerified')
+                setIsBonusEnterOpen(false)
+            } else {
+                setBonusProgramState('noNumber')
+                toast.error(data["error"])
+            }
+        } catch (err) {
+            console.log("Ошибка сервера: ", err)
+            toast.error("Ошибка сервера")
         }
     }
 
     const handleBonusRegistrationClose = async (enteredPhone?: string) => {
-        const currentPhone = enteredPhone ?? phone
-        setPhone(currentPhone)
+        try {
+            const currentPhone = enteredPhone ?? phone
+            setPhone(currentPhone)
 
-        if (currentPhone.length != 10) {
-            setPhone("")
-            setIsBonusRegistrationOpen(false)
-            return
-        }
+            if (currentPhone.length != 10) {
+                setPhone("")
+                setIsBonusRegistrationOpen(false)
+                return
+            }
 
-        const response = await fetch('http://localhost:8080/api/user/start-registration', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: currentPhone }),
-            credentials: "include"
-        })
-        const data = await response.json()
+            const response = await fetch('http://localhost:8080/api/user/start-registration', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: currentPhone }),
+                credentials: "include"
+            })
+            const data = await response.json()
 
-        if (response.ok) {
-            setIsBonusRegistrationOpen(false)
-            setIsBonusVerificationOpen(true)
-        } else {
-            toast.error(data["error"])
+            if (response.ok) {
+                setIsBonusRegistrationOpen(false)
+                setIsBonusVerificationOpen(true)
+            } else {
+                toast.error(data["error"])
+            }
+        } catch (err) {
+            console.log("Ошибка сервера: ", err)
+            toast.error("Ошибка сервера")
         }
     }
 
     const handleBonusRegistrationVerificationClose = async (code: string) => {
+        try {
+            if ((phone.length != 10) || (code.length != 6)) {
+                setPhone("")
+                setIsBonusVerificationOpen(false)
+                return
+            }
 
-        if ((phone.length != 10) || (code.length != 6)) {
-            setPhone("")
-            setIsBonusVerificationOpen(false)
-            return
-        }
+            const response = await fetch('http://localhost:8080/api/user/verify-registration', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: phone, code: code }),
+                credentials: "include"
+            })
+            const data = await response.json()
 
-        const response = await fetch('http://localhost:8080/api/user/verify-registration', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: phone, code: code }),
-            credentials: "include"
-        })
-        const data = await response.json()
-
-        if (response.ok) {
-            setBonusesCount(data["bonuses"])
-            setBonusProgramState("notVerified")
-            setIsBonusVerificationOpen(false)
-            toast.success(data["message"])
-        } else {
-            toast.error(data["error"])
+            if (response.ok) {
+                setBonusesCount(data["bonuses"])
+                setBonusProgramState("notVerified")
+                setIsBonusVerificationOpen(false)
+                toast.success(data["message"])
+            } else {
+                toast.error(data["error"])
+            }
+        } catch (err) {
+            console.log("Ошибка сервера: ", err)
+            toast.error("Ошибка сервера")
         }
     }
 
     // Для отправки кода при нажатии на кнопку списать бонусы
     const handleBonusVerification = async (enteredPhone?: string) => {
-        const currentPhone = enteredPhone ?? phone
-        setPhone(currentPhone)
+        try {
+            const currentPhone = enteredPhone ?? phone
+            setPhone(currentPhone)
 
-        if (currentPhone.length != 10) {
-            toast.error("Введите номер полностью")
-            return
-        }
+            if (currentPhone.length != 10) {
+                toast.error("Введите номер полностью")
+                return
+            }
 
-        const response = await fetch('http://localhost:8080/api/user/start-verification', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: currentPhone }),
-            credentials: "include"
-        })
-        const data = await response.json()
+            const response = await fetch('http://localhost:8080/api/user/start-verification', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: currentPhone }),
+                credentials: "include"
+            })
+            const data = await response.json()
 
-        if (response.ok) {
-            setIsBonusVerificationOpen(true)
-        } else {
-            toast.error(data["error"])
+            if (response.ok) {
+                setIsBonusVerificationOpen(true)
+            } else {
+                toast.error(data["error"])
+            }
+        } catch (err) {
+            console.log("Ошибка сервера: ", err)
+            toast.error("Ошибка сервера")
         }
     }
     
     // Валидация кода для списания бонусов
     const handleBonusVerificationClose = async (code: string) => {
+        try {
+            if ((phone.length != 10) || (code.length != 6)) {
+                setIsBonusVerificationOpen(false)
+                return
+            }
 
-        if ((phone.length != 10) || (code.length != 6)) {
-            setIsBonusVerificationOpen(false)
-            return
-        }
+            const response = await fetch('http://localhost:8080/api/user/verify', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: phone, code: code, price: totalCartPrice}),
+                credentials: "include"
+            })
+            const data = await response.json()
 
-        const response = await fetch('http://localhost:8080/api/user/verify', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: phone, code: code, price: totalCartPrice}),
-            credentials: "include"
-        })
-        const data = await response.json()
-
-        if (response.ok) {
-            setBonusProgramState("allDone")
-            setIsBonusVerificationOpen(false)
-            setBonusesCount(data["bonuses"])
-        } else {
-            toast.error(data["error"])
+            if (response.ok) {
+                setBonusProgramState("allDone")
+                setIsBonusVerificationOpen(false)
+                setBonusesCount(data["bonuses"])
+            } else {
+                toast.error(data["error"])
+            }
+        } catch (err) {
+            console.log("Ошибка сервера: ", err)
+            toast.error("Ошибка сервера")
         }
     }
 
     // Отмена списания бонусов (повторное нажатие на кнопку)
     const handleBonusVerificationCancel = async () => {
-        if (bonusProgramState != 'allDone') {
-            return
-        }
+        try {
+            if (bonusProgramState != 'allDone') {
+                return
+            }
 
-        if (phone.length != 10) {
-            toast.error("Введите номер полностью")
-            return
-        }
+            if (phone.length != 10) {
+                toast.error("Введите номер полностью")
+                return
+            }
 
-        const response = await fetch('http://localhost:8080/api/user/verify/cancel', {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: phone }),
-            credentials: "include"
-        })
-        const data = await response.json()
+            const response = await fetch('http://localhost:8080/api/user/verify/cancel', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: phone }),
+                credentials: "include"
+            })
+            const data = await response.json()
 
-        if (response.ok) {
-            toast.success(data["message"])
-        } else {
-            toast.error(data["error"])
+            if (response.ok) {
+                toast.success(data["message"])
+            } else {
+                toast.error(data["error"])
+            }
+        } catch (err) {
+            console.log("Ошибка сервера: ", err)
+            toast.error("Ошибка сервера")
         }
     }
 
@@ -216,6 +246,11 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
             setBonusesCount(0)
         }
     }, [cart])
+
+    // Для подъема стейта в родителя (App.tsx)
+    useEffect(() => {
+        onUpdatePhone(phone)
+    }, [phone, onUpdatePhone])
 
 
     return (
@@ -395,7 +430,8 @@ export default function Cart({ cart, onBack, onRemove } : CartProps) {
 
             <div className={`fixed flex bottom-5 left-20 right-20 z-20 px-8`}>
                     <div className={`w-full bg-black text-white px-10 py-5 text-2xl text-center rounded-full
-                    transition-all duration-300 active:scale-95 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer`}>
+                    transition-all duration-300 active:scale-95 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer`}
+                    onClick={() => { onNext() }}>
                         К оплате
                         {" • "}
                         {finalPrice}

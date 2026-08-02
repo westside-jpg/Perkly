@@ -94,26 +94,30 @@ func CreateTables(db *pgxpool.Pool) error {
 
 		CREATE TABLE IF NOT EXISTS orders (
 			id SERIAL PRIMARY KEY,
-			user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-			status TEXT NOT NULL DEFAULT 'pending',
-			total_price INTEGER NOT NULL,
-			total_calories INTEGER NOT NULL,
+			order_uuid TEXT NOT NULL UNIQUE
+			user_id INTEGER DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
+			status TEXT NOT NULL DEFAULT 'pending',         --'pending', 'processing', 'paid', 'cancelled', 'expired'
+			total_price INTEGER NOT NULL,                   -- Изначальная сумма корзины
+    		bonuses_used INTEGER NOT NULL DEFAULT 0,        -- Списано бонусов
+    		final_price INTEGER NOT NULL,                   -- Рубли к оплате
+    		bonuses_accrued INTEGER NOT NULL DEFAULT 0,     -- Сколько бонусов будет начислено
+			payment_method TEXT CHECK (payment_method IN ('card', 'sbp')),
+   			payment_id TEXT,                                -- ID транзакции из терминала / СБП
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		);
 
 		CREATE TABLE IF NOT EXISTS order_items (
 			id SERIAL PRIMARY KEY,
 			order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
 			product_variant_id INTEGER NOT NULL REFERENCES product_variants(id),
-			quantity INTEGER NOT NULL,
 			price_snapshot INTEGER NOT NULL,
-			calories_snapshot INTEGER NOT NULL
 		);
 
 		CREATE TABLE IF NOT EXISTS order_item_options (
 			order_item_id INTEGER NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
 			option_id INTEGER NOT NULL REFERENCES options(id),
-			quantity INTEGER NOT NULL,
+			price_snapshot INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (order_item_id, option_id)
 		);
 

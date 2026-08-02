@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"github.com/google/uuid"
 )
 
 type User struct {
@@ -30,6 +31,16 @@ type ApplyBonuses struct {
 	Phone string `json:"phone"`
 	Code string `json:"code"`
 	Price int `json:"price"`
+}
+
+type CartItem struct {
+	ProductVariantID int   `json:"product_variant_id"`
+	OptionIDs        []int `json:"option_ids"`
+}
+
+type CheckoutRequest struct {
+	Phone string        `json:"phone"`
+	Items []CartItem    `json:"items"`
 }
 
 func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
@@ -576,6 +587,267 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Списание бонусов отменено",
+		})
+
+	})
+
+	r.POST("api/order/checkout", func(c *gin.Context) {
+		var req CheckoutRequest
+		err := c.ShouldBindJSON(&req)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Неправильный запрос",
+			})
+			return
+		}
+
+		if len(req.Items) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Корзина пуста"})
+			return
+		}
+
+		// Получаем айдишники всех продуктов из корзины
+		variantIDs := make([]int, len(req.Items))
+		for i, item := range req.Items {
+			variantIDs[i] = item.ProductVariantID
+		}
+
+		rows, err := db.Query(
+			context.Background(),
+			`SELECT id, price_base 
+			FROM product_variants 
+			WHERE id = ANY($1)`,
+			variantIDs,
+		)
+		if err != nil {
+			log.Printf("Ошибка получения цен продуктов из БД: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка базы данных",
+			})
+			return
+		}
+		defer rows.Close()
+
+		// Создаем map для продуктов из корзины [айди_варианта]: [его_цена]
+		prices := make(map[int]int)
+		for rows.Next() {
+    		var id, price int
+			err = rows.Scan(&id, &price)
+			if err != nil {
+				log.Printf("Ошибка чтения цен продуктов из БД: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Ошибка базы данных",
+				})
+				return
+			}
+			prices[id] = price
+		}
+
+		if err = rows.Err(); err != nil {
+			log.Printf("Ошибка итерирования строк: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка базы данных",
+			})
+			return
+		}
+
+		// Получаем айдишники всех опций из корзины
+		var optionIDs []int
+		for _, item := range req.Items {
+			optionIDs = append(optionIDs, item.OptionIDs...)
+		}
+
+		// Создаем map для опций из корзины [айди_опции]: [ее_цена]
+		optionPrices := make(map[int]int) 
+
+		if len(optionIDs) > 0 {
+			optionRows, err := db.Query(
+				context.Background(),
+				`SELECT id, price_delta 
+				FROM options 
+				WHERE id = ANY($1)`,
+				optionIDs,
+			)
+			if err != nil {
+				log.Printf("Ошибка получения цен опций из БД: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Ошибка базы данных",
+				})
+				return
+			}
+			defer optionRows.Close()
+
+			for optionRows.Next() {
+				var id, price int
+				if err := optionRows.Scan(&id, &price); err != nil {
+					log.Printf("Ошибка сканирования опций: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "Ошибка базы данных",
+					})
+					return
+				}
+				optionPrices[id] = price
+			}
+		}
+
+		totalPrice := 0
+
+		// Структура посчитанного товара (чтобы потом записать в БД)
+		type CalculatedItem struct {
+			ProductVariantID int
+			BasePrice        int
+			OptionIDs        []int
+			OptionsTotalPrice int
+			ItemTotalPrice   int
+		}
+
+		var calculatedItems []CalculatedItem
+
+		for _, item := range req.Items {
+			basePrice, exists := prices[item.ProductVariantID]
+			if !exists {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error": "Товар не найден",
+				})
+				return
+			}
+
+			// Считаем сумму опций для конкретной позиции
+			optionsSum := 0
+			for _, optID := range item.OptionIDs {
+				optPrice, ok := optionPrices[optID]
+				if !ok {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"error": "Опция не найдена",
+					})
+					return
+				}
+				optionsSum += optPrice
+			}
+
+			itemTotal := basePrice + optionsSum
+			totalPrice += itemTotal
+
+			calculatedItems = append(calculatedItems, CalculatedItem{
+				ProductVariantID: item.ProductVariantID,
+				BasePrice:        basePrice,
+				OptionIDs:        item.OptionIDs,
+				OptionsTotalPrice: optionsSum,
+				ItemTotalPrice:   itemTotal,
+			})
+		}
+
+
+		var finalPrice = totalPrice
+		var bonusesUsed = 0
+
+		var userID *int
+        phoneClean := strings.TrimSpace(req.Phone)
+
+        if len(phoneClean) == 10 {
+            var id, userBonuses int
+
+            err := db.QueryRow(
+                context.Background(),
+                `SELECT id, bonuses FROM users WHERE phone = $1`,
+                phoneClean,
+            ).Scan(&id, &userBonuses)
+
+            if err == nil {
+                userID = &id
+
+                bonusKey := fmt.Sprintf("bonuses:apply:%s", phoneClean)
+                _, errRedis := rdb.Get(context.Background(), bonusKey).Result()
+
+                if errRedis == nil {
+                    if totalPrice >= userBonuses {
+                        finalPrice = totalPrice - userBonuses
+                        bonusesUsed = userBonuses
+                    } else {
+                        finalPrice = 0
+                        bonusesUsed = totalPrice
+                    }
+                } else if errRedis != redis.Nil {
+                    log.Printf("Ошибка получения значения списания бонусов в Redis: %v", errRedis)
+                    c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "Ошибка базы данных",
+					})
+                    return
+                }
+            }
+        }
+
+		orderUUID := "ord_" + uuid.New().String()
+
+		// Запись данных в orders, order_items, order_item_options
+		tx, err := db.Begin(context.Background())
+		if err != nil {
+			log.Printf("Ошибка открытия транзакции: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных"})
+			return
+		}
+		defer tx.Rollback(context.Background())
+
+		var newOrderID int
+		err = tx.QueryRow(
+			context.Background(),
+			`INSERT INTO orders (order_uuid, user_id, total_price, bonuses_used, final_price, bonuses_accrued)
+			VALUES ($1, $2, $3, $4, $5, $6)
+			RETURNING id`,
+			orderUUID, userID, totalPrice, bonusesUsed, finalPrice, (finalPrice / 10),
+		).Scan(&newOrderID)
+		if err != nil {
+			log.Printf("Ошибка записи значений в таблицу orders: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка базы данных",
+			})
+			return
+		}
+
+		for _, item := range calculatedItems {
+			var orderItemID int
+
+			err = tx.QueryRow(
+				context.Background(),
+				`INSERT INTO order_items (order_id, product_variant_id, price_snapshot)
+				VALUES ($1, $2, $3)
+				RETURNING id`,
+				newOrderID, item.ProductVariantID, item.BasePrice,
+			).Scan(&orderItemID)
+
+			if err != nil {
+				log.Printf("Ошибка записи в order_items: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных"})
+				return
+			}
+
+			for _, optID := range item.OptionIDs {
+				optPrice := optionPrices[optID]
+
+				_, err = tx.Exec(
+					context.Background(),
+					`INSERT INTO order_item_options (order_item_id, option_id, price_snapshot)
+					VALUES ($1, $2, $3)`,
+					orderItemID, optID, optPrice,
+				)
+				if err != nil {
+					log.Printf("Ошибка записи в order_item_options: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных"})
+					return
+				}
+			}
+		}
+
+		if err := tx.Commit(context.Background()); err != nil {
+			log.Printf("Ошибка фиксации транзакции: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных"})
+			return
+		}
+		
+		c.JSON(http.StatusOK, gin.H{
+			"order_uuid":  orderUUID,
+			"final_price": finalPrice,
 		})
 
 	})
