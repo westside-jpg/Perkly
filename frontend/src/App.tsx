@@ -132,7 +132,7 @@ function App() {
           items: formattedItems
         }
 
-        const response = await fetch("api/order/checkout", {
+        const response = await fetch("http://localhost:8080/api/order/checkout", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
