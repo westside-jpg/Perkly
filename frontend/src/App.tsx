@@ -9,15 +9,17 @@ import MethodCard from './pages/MethodCard'
 import MethodSBP from './pages/MethodSBP'
 import Approved from './pages/Approved'
 import Declined from './pages/Declined'
+import Screensaver from './pages/Screensaver'
 import { declinationWord } from './utils/declination'
 import { Toaster } from 'sonner'
 import { toast } from 'sonner'
+import { AnimatePresence, motion } from 'framer-motion'
 
 import type { CartItem, PopUpProductInfo, PopUpVariant, Milk, PopUpOption, ProductCardAndCategories, CartItemForCheckout, CheckoutRequest } from './types'
 
 
 function App() {
-  const [screen, setScreen] = useState<'catalog' | 'cart' | 'checkout' | 'methodCard' | 'methodSBP' | 'declined' | 'approved'>('catalog')
+  const [screen, setScreen] = useState<'screensaver' | 'catalog' | 'cart' | 'checkout' | 'methodCard' | 'methodSBP' | 'declined' | 'approved'>('screensaver')
 
   const [results, setResults] = useState<ProductCardAndCategories[]>([])
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
@@ -191,10 +193,28 @@ function App() {
   }
 
   useEffect(() => {
-    if (cart.length == 0) {
+    if (cart.length === 0 && (screen === 'cart' || screen === 'checkout')) {
       setScreen('catalog')
     }
-  }, [cart])
+  }, [cart, screen])
+
+  const resetToWaitScreen = () => {
+    setCart([])
+    setPhone("")
+    setCheckoutPrice(0)
+    setOrderUUID("")
+    setClientNumber("")
+    setPopUpOpen(false)
+    setSelectedCategory(null)
+    setResults([])
+    setPopUpProductInfo(null)
+    setPopUpVariant([])
+    setPopUpOption([])
+
+    GetProductsAndCategories()
+
+    setScreen('screensaver')
+  }
 
   // --- Скролл, и всё, что с ним связано ---
   const sectionRefs = useRef<Record<number, HTMLDivElement | null>>({})
@@ -248,25 +268,66 @@ function App() {
     }
 
     container.addEventListener('scroll', handleScroll)
-    handleScroll()
-    return () => container.removeEventListener('scroll', handleScroll)
-  }, [categories])
+    
+    const initTimer = setTimeout(() => {
+      handleScroll()
+    }, 50)
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+      clearTimeout(initTimer)
+    }
+  }, [categories, screen])
+
+
+  useEffect(() => {
+    if (screen === 'catalog' && selectedCategory === null && categories.length > 0) {
+      setSelectedCategory(categories[0].id)
+    }
+  }, [screen, categories, selectedCategory])
 
   return (
     <KioskFrame>
 
-      <Toaster
-        position="top-center"
-        style={{ fontFamily: "MyFont, sans-serif" }}
-      />
+        <Toaster
+          position="top-center"
+          style={{ fontFamily: "MyFont, sans-serif" }}
+        />
 
-      <div className='flex justify-center'>
-        <p className='font-extrabold text-6xl'>PERKLY</p>
-      </div>
+        {/* -------------- ЛОГОТИП -------------- */}
+        {screen != 'screensaver' && (
+          <div className='flex justify-center'>
+            <p className='font-extrabold text-6xl'>PERKLY</p>
+          </div>
+        )}
+
+      <AnimatePresence mode="wait">
+
+        {/* -------------- ЭКРАН ОЖИДАНИЯ -------------- */}
+        {screen === 'screensaver' && (
+          <motion.div
+            key="screensaver"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="absolute inset-0 w-full h-full z-30"
+          >
+            <Screensaver onStart={() => setScreen('catalog')} />
+          </motion.div>
+        )}
 
         {/* -------------- КАТАЛОГ --------------  */}
-        <div className={`transition-all duration-300
-          ${screen == 'catalog' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
+        {screen === 'catalog' && (
+        <motion.div
+          key="catalog"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="w-full h-full"
+        >
+        <div>
 
             <CategoriesTabs
               categories={categories}
@@ -326,80 +387,122 @@ function App() {
               
           </div>
         </div>
+        </motion.div>
+        )}
 
 
         {/* -------------- КОРЗИНА --------------  */}
-        <div className={`transition-all duration-300
-          ${screen == 'cart' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
-
-            <Cart cart={cart} 
-            onBack={() => setScreen('catalog')} 
-            onRemove={removeFromCart}
-            onUpdatePhone={setPhone}
-            onNext={handleCheckout}
+        {screen === 'cart' && (
+        <motion.div
+          key="cart"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="w-full h-full"
+        >
+            <Cart
+              cart={cart}
+              onBack={() => setScreen('catalog')}
+              onRemove={removeFromCart}
+              onUpdatePhone={setPhone}
+              onNext={handleCheckout}
             />
-
-        </div>
+          </motion.div>
+        )}
 
         
         {/* -------------- ЧЕКАУТ --------------  */}
-        <div className={`transition-all duration-300
-          ${screen == 'checkout' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
-
-            <Checkout 
-            checkoutPrice={checkoutPrice}
-            onBack={() => { setScreen("cart") }}
-            onNextMethodCard={() => { setScreen('methodCard') }}
-            onNextMethodSBP={() => { setScreen('methodSBP') }}
+        {screen === 'checkout' && (
+          <motion.div
+            key="checkout"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="w-full h-full"
+          >
+            <Checkout
+                checkoutPrice={checkoutPrice}
+                onBack={() => { setScreen("cart") }}
+                onNextMethodCard={() => { setScreen('methodCard') }}
+                onNextMethodSBP={() => { setScreen('methodSBP') }}
             />
+          </motion.div>
+        )}
 
-        </div>
 
-        {/* ОПЛАТА КАРТОЙ */}
-        <div className={`transition-all duration-300
-          ${screen == 'methodCard' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
 
-            <MethodCard onBack={() => { setScreen("checkout") }}
-            onDeclined={() => { handlePay("card", "declined") }}
-            onApproved={() => { handlePay("card", "approved") }}
+        {/* ----- ОПЛАТА КАРТОЙ ----- */}
+        {screen === 'methodCard' && (
+          <motion.div
+            key="methodCard"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            transition={{ duration: 0.15 }}
+            className="w-full h-full"
+          >
+            <MethodCard
+              onBack={() => { setScreen("checkout") }}
+              onDeclined={() => { handlePay("card", "declined") }}
+              onApproved={() => { handlePay("card", "approved") }}
             />
+          </motion.div>
+        )}
 
-        </div>
-
-        {/* ОПЛАТА СБП */}
-        <div className={`transition-all duration-300
-          ${screen == 'methodSBP' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
-
-            <MethodSBP onBack={() => { setScreen("checkout") }}
-            onDeclined={() => { handlePay("sbp", "declined") }}
-            onApproved={() => { handlePay("sbp", "approved") }}
+        {/* ----- ОПЛАТА СБП ----- */}
+        {screen === 'methodSBP' && (
+          <motion.div
+            key="methodSBP"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            transition={{ duration: 0.15 }}
+            className="w-full h-full"
+          >
+            <MethodSBP
+              onBack={() => { setScreen("checkout") }}
+              onDeclined={() => { handlePay("sbp", "declined") }}
+              onApproved={() => { handlePay("sbp", "approved") }}
             />
+          </motion.div>
+        )}
+        
 
-        </div>
+        {/* ----- НЕУДАЧНАЯ ОПЛАТА ----- */}
+        {screen === 'declined' && (
+          <motion.div 
+            key="declined" 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            transition={{ duration: 0.15 }}
+            className="w-full h-full"
+          >
+            <Declined onBack={() => setScreen('checkout')}/>
+          </motion.div>
+        )}
 
-        {/* НЕУДАЧНАЯ ОПЛАТА */}
-        <div className={`transition-all duration-300
-          ${screen == 'declined' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
+        {/* ----- УСПЕШНАЯ ОПЛАТА ----- */}
+        {screen === 'approved' && (
+          <motion.div 
+            key="approved" 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            transition={{ duration: 0.15 }}
+            className="w-full h-full"
+          >
+            <Approved
+              onFinish={resetToWaitScreen}
+              orderNumber={clientNumber}
+              isApproved={screen === 'approved'}
+            />
+          </motion.div>
+        )}
 
-          <Declined onBack={() => setScreen('checkout')}/>
-
-        </div>
-
-        {/* УСПЕШНАЯ ОПЛАТА */}
-        <div className={`transition-all duration-300
-          ${screen == 'approved' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
-
-          <Approved onFinish={() => setScreen('catalog')}
-          orderNumber={clientNumber}
-          isApproved={screen === 'approved'}
-          />
-
-        </div>
-
-
-
-
-
+      </AnimatePresence>
     </KioskFrame>
   )
 

@@ -4,7 +4,7 @@ interface DeclinedProps {
 
 export default function Declined({ onBack }: DeclinedProps) {
     return (
-        <div className={`flex flex-col items-center max-h-[1060px] overflow-y-auto pb-27 scrollbar-hide`}>
+        <div className={`flex flex-col items-center max-h-[1060px] overflow-y-auto pb-27 scrollbar-hide mt-6`}>
 
             <div className={`flex flex-col items-center text-center mt-26`}>
                 <div className={`bg-[#D82929] rounded-full

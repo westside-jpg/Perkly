@@ -6,7 +6,7 @@ interface MethodCardProps {
 
 export default function MethodCard({ onBack, onApproved, onDeclined } : MethodCardProps) {
     return (
-        <div className={`flex flex-col items-center max-h-[1060px] overflow-y-auto pb-27 scrollbar-hide`}>
+        <div className={`flex flex-col items-center max-h-[1060px] overflow-y-auto pb-27 scrollbar-hide mt-6`}>
 
             {/* Кнопка назад */}
             <div 
