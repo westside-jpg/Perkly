@@ -451,7 +451,8 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
                 "error": fmt.Sprintf(
 					"Слишком частые попытки запроса кода. Попробуйте снова через %d %s",
 					int(duration.Seconds()),
-					utils.DeclinationWord(int(duration.Seconds()), "секунду", "секунды", "секунд")),
+					utils.DeclinationWord(int(duration.Seconds()), "секунду", "секунды", "секунд"),
+				),
             })
             return
         } else if err != redis.Nil {

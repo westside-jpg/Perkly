@@ -259,7 +259,12 @@ export default function Cart({ cart, onBack, onRemove, onUpdatePhone, onNext } :
             <div 
             className={`flex flex-row gap-1 self-start w-full bg-black items-center px-8 py-[16px] rounded-full
                 cursor-pointer active:scale-95 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]`}
-            onClick={() => { onBack() }}>
+            onClick={() => { 
+                if (bonusProgramState == 'allDone') {
+                    handleBonusVerificationCancel()
+                }
+                onBack() 
+            }}>
                 <img alt='Назад' src='elements/back.svg'
                 className={`h-5 w-5`} />
                 <p className={`text-white text-[22px] pl-2`}>Назад</p>
