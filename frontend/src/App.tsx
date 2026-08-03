@@ -5,6 +5,10 @@ import ProductCard from './components/ProductCard'
 import CustomizationPopUp from './components/CustomizationPopUp'
 import Cart from './pages/Cart'
 import Checkout from './pages/Checkout'
+import MethodCard from './pages/MethodCard'
+import MethodSBP from './pages/MethodSBP'
+import Approved from './pages/Approved'
+import Declined from './pages/Declined'
 import { declinationWord } from './utils/declination'
 import { Toaster } from 'sonner'
 import { toast } from 'sonner'
@@ -13,7 +17,7 @@ import type { CartItem, PopUpProductInfo, PopUpVariant, Milk, PopUpOption, Produ
 
 
 function App() {
-  const [screen, setScreen] = useState<'catalog' | 'cart' | 'checkout'>('catalog')
+  const [screen, setScreen] = useState<'catalog' | 'cart' | 'checkout' | 'methodCard' | 'methodSBP' | 'declined' | 'approved'>('catalog')
 
   const [results, setResults] = useState<ProductCardAndCategories[]>([])
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
@@ -28,6 +32,8 @@ function App() {
 
   const [checkoutPrice, setCheckoutPrice] = useState(0)
   const [orderUUID, setOrderUUID] = useState("")
+
+  const [clientNumber, setClientNumber] = useState("")
 
 
   const totalCartPrice = cart.reduce((total, item) => {
@@ -147,6 +153,37 @@ function App() {
         } else {
           toast.error(data["error"])
         }
+    } catch (err) {
+        console.log("Ошибка сервера: ", err)
+        toast.error("Ошибка сервера")
+    }
+  }
+
+  const handlePay = async (method: "card" | "sbp", status: "approved" | "declined") => {
+    try {
+        const response = await fetch("http://localhost:8080/api/order/pay", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              order_uuid: orderUUID,
+              method: method,
+              status: status
+            }),
+            credentials: "include"
+        })
+        const data = await response.json()
+
+        if (response.ok) {
+          if (data["success"] == true) {
+            setClientNumber(data["order_client_number"])
+            setScreen('approved')
+          } else if (data["success"] == false) {
+            setScreen('declined')
+          }
+        } else {
+          toast.error(data["error"])
+        }
+
     } catch (err) {
         console.log("Ошибка сервера: ", err)
         toast.error("Ошибка сервера")
@@ -309,10 +346,55 @@ function App() {
         <div className={`transition-all duration-300
           ${screen == 'checkout' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
 
-            <Checkout checkoutPrice={checkoutPrice} onBack={() => { setScreen("cart") }}/>
+            <Checkout 
+            checkoutPrice={checkoutPrice}
+            onBack={() => { setScreen("cart") }}
+            onNextMethodCard={() => { setScreen('methodCard') }}
+            onNextMethodSBP={() => { setScreen('methodSBP') }}
+            />
 
         </div>
 
+        {/* ОПЛАТА КАРТОЙ */}
+        <div className={`transition-all duration-300
+          ${screen == 'methodCard' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
+
+            <MethodCard onBack={() => { setScreen("checkout") }}
+            onDeclined={() => { handlePay("card", "declined") }}
+            onApproved={() => { handlePay("card", "approved") }}
+            />
+
+        </div>
+
+        {/* ОПЛАТА СБП */}
+        <div className={`transition-all duration-300
+          ${screen == 'methodSBP' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
+
+            <MethodSBP onBack={() => { setScreen("checkout") }}
+            onDeclined={() => { handlePay("sbp", "declined") }}
+            onApproved={() => { handlePay("sbp", "approved") }}
+            />
+
+        </div>
+
+        {/* НЕУДАЧНАЯ ОПЛАТА */}
+        <div className={`transition-all duration-300
+          ${screen == 'declined' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
+
+          <Declined onBack={() => setScreen('checkout')}/>
+
+        </div>
+
+        {/* УСПЕШНАЯ ОПЛАТА */}
+        <div className={`transition-all duration-300
+          ${screen == 'approved' ? "opacity-100" : "opacity-0 pointer-events-none max-h-0"}`}>
+
+          <Approved onFinish={() => setScreen('catalog')}
+          orderNumber={clientNumber}
+          isApproved={screen === 'approved'}
+          />
+
+        </div>
 
 
 

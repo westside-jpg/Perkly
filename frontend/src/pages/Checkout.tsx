@@ -1,16 +1,18 @@
 interface CheckoutProps {
     checkoutPrice: number
     onBack: () => void
+    onNextMethodCard: () => void
+    onNextMethodSBP: () => void
 }
 
-export default function Checkout({ checkoutPrice, onBack } : CheckoutProps) {
+export default function Checkout({ checkoutPrice, onBack, onNextMethodCard, onNextMethodSBP } : CheckoutProps) {
     return (
         <div className={`flex flex-col items-center max-h-[1060px] overflow-y-auto pb-27 scrollbar-hide`}>
 
             {/* Кнопка назад */}
             <div 
                 className={`flex flex-row gap-1 self-start w-full bg-black items-center px-8 py-[16px] rounded-full
-                    cursor-pointer active:scale-95 transition-all duration-200`}
+                    cursor-pointer active:scale-95 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]`}
                 onClick={() => { onBack() }}>
                     <img alt='Назад' src='elements/back.svg'
                     className={`h-5 w-5`} />
@@ -33,7 +35,9 @@ export default function Checkout({ checkoutPrice, onBack } : CheckoutProps) {
                 <div className={`flex flex-col gap-3`}>
                     <div className={`border-2 border-[#A2A2A2] rounded-[60px] w-[370px] h-[370px]
                         flex items-center justify-center cursor-pointer
-                        transition-all duration-200 active:scale-90`}>
+                        transition-all duration-200 active:scale-90
+                        ease-[cubic-bezier(0.16,1,0.3,1)]`}
+                        onClick={() => { onNextMethodCard() }}>
                         <img alt="Способ оплаты: карта" src="elements/card.svg"
                         className="max-w-full max-h-full object-contain" />
                     </div>
@@ -44,7 +48,9 @@ export default function Checkout({ checkoutPrice, onBack } : CheckoutProps) {
                 <div className={`flex flex-col gap-3`}>
                     <div className={`border-2 border-[#A2A2A2] rounded-[60px] w-[370px] h-[370px]
                         flex items-center justify-center cursor-pointer
-                        transition-all duration-200 active:scale-90`}>
+                        transition-all duration-200 active:scale-90
+                        ease-[cubic-bezier(0.16,1,0.3,1)]`}
+                        onClick={() => { onNextMethodSBP() }}>
                         <img alt="Способ оплаты: карта" src="elements/sbp.svg" 
                         className="max-w-full max-h-full object-contain" />
                     </div>

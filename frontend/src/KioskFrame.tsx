@@ -19,7 +19,7 @@ export default function KioskFrame({ children }: { children: ReactNode }) {
     <div className="w-screen h-screen flex items-center justify-center bg-black overflow-hidden">
       <div
         style={{ width: WIDTH, height: HEIGHT, transform: `scale(${scale})` }}
-        className="bg-white shrink-0 overflow-hidden"
+        className="kioskframe relative bg-white shrink-0 overflow-hidden"
       >
         <div className="p-8 w-full h-full">
           {children}

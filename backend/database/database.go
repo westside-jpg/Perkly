@@ -92,11 +92,19 @@ func CreateTables(db *pgxpool.Pool) error {
 			PRIMARY KEY (product_id, option_id)
 		);
 
+		CREATE SEQUENCE IF NOT EXISTS order_client_number_seq
+			START WITH 100
+			INCREMENT BY 1
+			MINVALUE 100
+			MAXVALUE 999
+			CYCLE;
+
 		CREATE TABLE IF NOT EXISTS orders (
 			id SERIAL PRIMARY KEY,
 			order_uuid TEXT NOT NULL UNIQUE,
 			user_id INTEGER DEFAULT NULL REFERENCES users(id) ON DELETE SET NULL,
-			status TEXT NOT NULL DEFAULT 'pending',         -- 'pending', 'processing', 'paid', 'cancelled', 'expired'
+			order_client_number TEXT DEFAULT '',
+			status TEXT NOT NULL DEFAULT 'pending',         -- 'pending', 'paid', 'cancelled', 'done'
 			total_price INTEGER NOT NULL,                   -- Изначальная сумма корзины
     		bonuses_used INTEGER NOT NULL DEFAULT 0,        -- Списано бонусов
     		final_price INTEGER NOT NULL,                   -- Рубли к оплате

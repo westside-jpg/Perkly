@@ -24,13 +24,13 @@ type User struct {
 
 type Registration struct {
 	Phone string `json:"phone"`
-	Code string `json:"code"`
+	Code string  `json:"code"`
 }
 
 type ApplyBonuses struct {
 	Phone string `json:"phone"`
-	Code string `json:"code"`
-	Price int `json:"price"`
+	Code string  `json:"code"`
+	Price int    `json:"price"`
 }
 
 type CartItem struct {
@@ -39,8 +39,14 @@ type CartItem struct {
 }
 
 type CheckoutRequest struct {
-	Phone string        `json:"phone"`
-	Items []CartItem    `json:"items"`
+	Phone string     `json:"phone"`
+	Items []CartItem `json:"items"`
+}
+
+type PayRequest struct {
+	OrderUUID string `json:"order_uuid"`
+	Method    string `json:"method"`
+	Status    string `json:"status"`
 }
 
 func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
@@ -850,6 +856,108 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			"final_price": finalPrice,
 		})
 
+	})
+
+	r.POST("api/order/pay", func(c *gin.Context) {
+		var req PayRequest
+		err := c.ShouldBindJSON(&req)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Неправильный запрос",
+			})
+			return
+		}
+
+		testPaymentID := "test_pay_" + uuid.New().String()
+
+		// Неудачная оплата
+		if (req.Status == "declined") {
+			_, err = db.Exec(
+				context.Background(),
+				`UPDATE orders
+				SET status = 'cancelled', payment_method = $1, payment_id = $2, updated_at = NOW()
+				WHERE order_uuid = $3`,
+				req.Method, testPaymentID, req.OrderUUID,
+			)
+
+			if err != nil {
+				log.Printf("Ошибка записи неудачного заказа: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Ошибка базы данных",
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+			})
+			return
+		} 
+		
+		// Успешная оплата
+		if (req.Status == "approved") {
+			tx, err := db.Begin(context.Background())
+			if err != nil {
+				log.Printf("Ошибка открытия транзакции: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных"})
+				return
+			}
+			defer tx.Rollback(context.Background())
+
+			var userID *int
+			var bonusesUsed, bonusesAccrued int
+			var clientNumber string
+			err = db.QueryRow(
+				context.Background(),
+				`UPDATE orders
+				SET status = 'paid',
+				    payment_method = $1,
+					order_client_number = LPAD(nextval('order_client_number_seq')::text, 3, '0'),
+					payment_id = $2,
+					updated_at = NOW()
+				WHERE order_uuid = $3
+				RETURNING user_id, bonuses_used, bonuses_accrued, order_client_number`,
+				req.Method, testPaymentID, req.OrderUUID,
+			).Scan(&userID, &bonusesUsed, &bonusesAccrued, &clientNumber)
+
+			if err != nil {
+				log.Printf("Ошибка записи удачного заказа: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Заказ не найден",
+				})
+				return
+			}
+
+			if userID != nil {
+				_, err = tx.Exec(
+					context.Background(), 
+					`UPDATE users 
+					SET bonuses = bonuses - $1 + $2 
+					WHERE id = $3`,
+					bonusesUsed, bonusesAccrued, *userID,
+				)
+				if err != nil {
+					log.Printf("Ошибка начисления бонусов: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка начисления бонусов"})
+					return
+				}
+			}
+
+			if err := tx.Commit(context.Background()); err != nil {
+				log.Printf("Ошибка фиксации транзакции: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка проведения оплаты"})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"success": true,
+				"order_client_number": clientNumber,
+			})
+			return
+		}
+
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неизвестный статус оплаты"})
 	})
 
 }

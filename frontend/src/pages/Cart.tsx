@@ -258,7 +258,7 @@ export default function Cart({ cart, onBack, onRemove, onUpdatePhone, onNext } :
             
             <div 
             className={`flex flex-row gap-1 self-start w-full bg-black items-center px-8 py-[16px] rounded-full
-                cursor-pointer active:scale-95 transition-all duration-200`}
+                cursor-pointer active:scale-95 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]`}
             onClick={() => { onBack() }}>
                 <img alt='Назад' src='elements/back.svg'
                 className={`h-5 w-5`} />
@@ -428,7 +428,7 @@ export default function Cart({ cart, onBack, onRemove, onUpdatePhone, onNext } :
                 )
             })}
 
-            <div className={`fixed flex bottom-5 left-20 right-20 z-20 px-8`}>
+            <div className={`fixed flex w-full bottom-5 z-20 px-8`}>
                     <div className={`w-full bg-black text-white px-10 py-5 text-2xl text-center rounded-full
                     transition-all duration-300 active:scale-95 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer`}
                     onClick={() => { onNext() }}>
