@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/google/uuid"
+	"github.com/westside-jpg/Perkly/backend/utils"
 )
 
 type User struct {
@@ -255,6 +256,24 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			})
 			return
 		}
+
+		rateLimitKey := fmt.Sprintf("auth:ratelimit:%s", req.Phone)
+
+        if _, err := rdb.Get(context.Background(), rateLimitKey).Result(); err == nil {
+            duration, _ := rdb.TTL(context.Background(), rateLimitKey).Result()
+            c.JSON(http.StatusBadRequest, gin.H{
+                "error": fmt.Sprintf(
+					"Слишком частые попытки запроса кода. Попробуйте снова через %d %s",
+					int(duration.Seconds()),
+					utils.DeclinationWord(int(duration.Seconds()), "секунду", "секунды", "секунд")),
+            })
+            return
+        } else if err != redis.Nil {
+            c.JSON(http.StatusInternalServerError, gin.H{
+                "error": "Ошибка базы данных",
+            })
+            return
+        }
 		
 		var isExist bool
 		err = db.QueryRow(
@@ -299,10 +318,18 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 		// Отчистка старого кода, если пользователь перезапросил
 		rdb.Del(context.Background(), codeKey, attemptsKey)
 
+		if err := rdb.Set(c.Request.Context(), rateLimitKey, true, time.Minute).Err(); err != nil {
+			log.Printf("Ошибка сохранения ключа для Rate Limiting в Redis: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка базы данных",
+			})
+			return
+		}
+
 		if err := rdb.Set(c.Request.Context(), attemptsKey, 5, ttl).Err(); err != nil {
 			log.Printf("Ошибка сохранения количества попыток в Redis: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Не удалось сохранить количество попыток",
+				"error": "Ошибка базы данных",
 			})
 			return
 		}
@@ -310,7 +337,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 		if err := rdb.Set(c.Request.Context(), codeKey, code, ttl).Err(); err != nil {
 			log.Printf("Ошибка сохранения кода в Redis: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Не удалось сохранить код подтверждения",
+				"error": "Ошибка базы данных",
 			})
 			return
 		}
@@ -416,6 +443,24 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			return
 		}
 
+		rateLimitKey := fmt.Sprintf("bonuses:ratelimit:%s", req.Phone)
+
+        if _, err := rdb.Get(context.Background(), rateLimitKey).Result(); err == nil {
+            duration, _ := rdb.TTL(context.Background(), rateLimitKey).Result()
+            c.JSON(http.StatusBadRequest, gin.H{
+                "error": fmt.Sprintf(
+					"Слишком частые попытки запроса кода. Попробуйте снова через %d %s",
+					int(duration.Seconds()),
+					utils.DeclinationWord(int(duration.Seconds()), "секунду", "секунды", "секунд")),
+            })
+            return
+        } else if err != redis.Nil {
+            c.JSON(http.StatusInternalServerError, gin.H{
+                "error": "Ошибка базы данных",
+            })
+            return
+        }
+
 		var exists bool
         err = db.QueryRow(
 			context.Background(),
@@ -455,6 +500,14 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 
 		// Отчистка старого кода, если пользователь перезапросил
 		rdb.Del(context.Background(), codeKey, attemptsKey)
+
+		if err := rdb.Set(c.Request.Context(), rateLimitKey, true, time.Minute).Err(); err != nil {
+			log.Printf("Ошибка сохранения ключа для Rate Limiting в Redis: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка базы данных",
+			})
+			return
+		}
 
 		if err := rdb.Set(c.Request.Context(), attemptsKey, 5, ttl).Err(); err != nil {
 			log.Printf("Ошибка сохранения количества попыток в Redis: %v", err)

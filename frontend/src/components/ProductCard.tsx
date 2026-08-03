@@ -17,7 +17,7 @@ export default function ProductCard({ product, onOpen }: ProductCardProps) {
             </div>
             <div className="flex flex-row items-end min-h-[70px] mt-auto mb-5">
                 <div className="flex flex-col justify-end flex-1/3 gap-2 ml-[14px]">
-                    <p className="font-semibold text-[#4E4E4E] text-[22px] leading-5">{product.name}</p>
+                    <p className="font-semibold text-[#4E4E4E] text-[20px] leading-5">{product.name}</p>
                     <p className="font-medium text-[#727171] text-sm -mt-1">{product.min_volume} {product.unit} • {product.min_calories} ккал</p>
                 </div>
                 <p className="flex-1 text-[32px] text-right mr-[14px] text-[#4E4E4E] font-semibold">{product.min_price}₽</p>
