@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import KioskFrame from './KioskFrame'
 import CategoriesTabs from './components/CategoriesTabs'
 import ProductCard from './components/ProductCard'
@@ -10,6 +10,7 @@ import MethodSBP from './pages/MethodSBP'
 import Approved from './pages/Approved'
 import Declined from './pages/Declined'
 import Screensaver from './pages/Screensaver'
+import InactivityModal from './components/InactivityModal'
 import { declinationWord } from './utils/declination'
 import { Toaster } from 'sonner'
 import { toast } from 'sonner'
@@ -20,7 +21,6 @@ import type { CartItem, PopUpProductInfo, PopUpVariant, Milk, PopUpOption, Produ
 
 function App() {
   const [screen, setScreen] = useState<'screensaver' | 'catalog' | 'cart' | 'checkout' | 'methodCard' | 'methodSBP' | 'declined' | 'approved'>('screensaver')
-
   const [results, setResults] = useState<ProductCardAndCategories[]>([])
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [popUpOpen, setPopUpOpen] = useState(false)
@@ -28,15 +28,15 @@ function App() {
   const [popUpVariant, setPopUpVariant] = useState<PopUpVariant[]>([])
   const [popUpOption, setPopUpOption] = useState<PopUpOption[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
-
-  // Стейт для подъема из Cart
+  const [isWarningOpen, setIsWarningOpen] = useState(false)
+  const [timeLeft, setTimeLeft] = useState(15)
+  const idleTimerRef = useRef<number | null>(null)
+  const countdownTimerRef = useRef<number | null>(null)
   const [phone, setPhone] = useState("")
   const [isBonusProgramDebit, setIsBonusProgramDebit] = useState(false)
   const [bonusesCount, setBonusesCount] = useState(0)
-
   const [checkoutPrice, setCheckoutPrice] = useState(0)
   const [orderUUID, setOrderUUID] = useState("")
-
   const [clientNumber, setClientNumber] = useState("")
 
 
@@ -234,6 +234,63 @@ function App() {
     setScreen('screensaver')
   }
 
+  const handleFullReset = useCallback(() => {
+      setIsWarningOpen(false)
+      setTimeLeft(15)
+      resetToWaitScreen()
+  }, [])
+
+  // Сброс таймера при любом действии пользователя
+  const resetIdleTimers = useCallback(() => {
+      if (screen === 'screensaver') {
+          if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+          if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
+          setIsWarningOpen(false)
+          return
+      }
+
+      if (isWarningOpen) return 
+
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
+
+      idleTimerRef.current = window.setTimeout(() => {
+          setIsWarningOpen(true)
+          setTimeLeft(15)
+
+          countdownTimerRef.current = window.setInterval(() => {
+              setTimeLeft(prev => {
+                  if (prev <= 1) {
+                      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
+                      handleFullReset()
+                      return 0
+                  }
+                  return prev - 1
+              })
+          }, 1000)
+
+      }, 45000) 
+  }, [isWarningOpen, screen, handleFullReset])
+
+  // Слушатели глобальных событий на киоске
+  useEffect(() => {
+      const events = ['pointerdown', 'touchstart', 'click', 'keydown', 'scroll']
+      
+      events.forEach(event => {
+          window.addEventListener(event, resetIdleTimers, { capture: true })
+      })
+
+      resetIdleTimers()
+
+      return () => {
+          events.forEach(event => {
+              window.removeEventListener(event, resetIdleTimers, { capture: true })
+          })
+          if (idleTimerRef.current) clearTimeout(idleTimerRef.current)
+          if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
+      }
+  }, [resetIdleTimers])
+
   // --- Скролл, и всё, что с ним связано ---
   const sectionRefs = useRef<Record<number, HTMLDivElement | null>>({})
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -333,6 +390,22 @@ function App() {
           >
             <Screensaver onStart={() => setScreen('catalog')} />
           </motion.div>
+        )}
+
+        {/* Модалка предупреждения о бездействии */}
+        {screen !== 'screensaver' && (
+          <InactivityModal 
+              isOpen={isWarningOpen}
+              onContinue={() => {
+                  setIsWarningOpen(false)
+                  if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
+                  resetIdleTimers()
+              }}
+              onCancel={() => {
+                  if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
+                  handleFullReset()
+              }}
+          />
         )}
 
         {/* -------------- КАТАЛОГ --------------  */}
