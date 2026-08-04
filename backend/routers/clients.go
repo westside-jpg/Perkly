@@ -402,7 +402,8 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			return
 		}
 
-		rdb.Del(context.Background(), codeKey, attemptsKey)
+		rateLimitKey := fmt.Sprintf("auth:ratelimit:%s", req.Phone)
+		rdb.Del(context.Background(), codeKey, attemptsKey, rateLimitKey)
 
 		_, err = db.Exec(
 			context.Background(),
@@ -586,7 +587,8 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			return
 		}
 
-		rdb.Del(context.Background(), codeKey, attemptsKey)
+		rateLimitKey := fmt.Sprintf("bonuses:ratelimit:%s", req.Phone)
+		rdb.Del(context.Background(), codeKey, attemptsKey, rateLimitKey)
 
 		bonusKey := fmt.Sprintf("bonuses:apply:%s", req.Phone)
 		if err := rdb.Set(c.Request.Context(), bonusKey, true, 15 * time.Minute).Err(); err != nil {
@@ -960,9 +962,10 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			defer tx.Rollback(context.Background())
 
 			var userID *int
+			var phone string
 			var bonusesUsed, bonusesAccrued int
 			var clientNumber string
-			err = db.QueryRow(
+			err = tx.QueryRow(
 				context.Background(),
 				`UPDATE orders
 				SET status = 'paid',
@@ -984,18 +987,23 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			}
 
 			if userID != nil {
-				_, err = tx.Exec(
+				err = tx.QueryRow(
 					context.Background(), 
 					`UPDATE users 
 					SET bonuses = bonuses - $1 + $2 
-					WHERE id = $3`,
+					WHERE id = $3
+					RETURNING phone`,
 					bonusesUsed, bonusesAccrued, *userID,
-				)
+				).Scan(&phone)
+
 				if err != nil {
 					log.Printf("Ошибка начисления бонусов: %v", err)
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка начисления бонусов"})
 					return
 				}
+
+				bonusKey := fmt.Sprintf("bonuses:apply:%s", phone)
+				rdb.Del(context.Background(), bonusKey)
 			}
 
 			if err := tx.Commit(context.Background()); err != nil {

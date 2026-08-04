@@ -6,10 +6,11 @@ interface BonusVerificationProps {
     isBonusVerificationOpen: boolean
     initialPhone: string
     resendCode: (phone?: string) => void
+    onBasicClose: () => void
     onBonusVerificationClose: (code: string) => void
 }
 
-export default function BonusVerification({isBonusVerificationOpen, initialPhone, onBonusVerificationClose, resendCode } : BonusVerificationProps) {
+export default function BonusVerification({isBonusVerificationOpen, initialPhone, onBonusVerificationClose, resendCode, onBasicClose } : BonusVerificationProps) {
     const [digits, setDigits] = useState('')
 
     const formatPhone = (val: string) => {
@@ -40,6 +41,12 @@ export default function BonusVerification({isBonusVerificationOpen, initialPhone
         }
     }, [digits])
 
+    useEffect(() => {
+        if (isBonusVerificationOpen) {
+            setDigits('') // Сбрасываем код при каждом открытии окна
+        }
+    }, [isBonusVerificationOpen])
+
     return (
         <div 
             className={`absolute inset-0 z-50 flex flex-col items-center justify-center 
@@ -51,8 +58,7 @@ export default function BonusVerification({isBonusVerificationOpen, initialPhone
 
             <button 
                 onClick={() => { 
-                    setDigits("")
-                    onBonusVerificationClose(digits)
+                    onBasicClose()
                  }}
                 className={`mb-4 flex h-[87px] w-[87px] shrink-0 items-center justify-center rounded-full 
                 bg-[#E4E2E2] shadow-md active:scale-90 transition-all duration-300 
@@ -99,7 +105,6 @@ export default function BonusVerification({isBonusVerificationOpen, initialPhone
                         <button 
                         onClick={() => { 
                             resendCode()
-                            toast.success("Код успешно переотправлен")
                          }}
                         className="bg-[#CBCBCB] text-[#4E4E4E] cursor-pointer mt-5 active:scale-90 transition-all duration-200 text-2xl px-10 py-3 rounded-full font-medium">
                             Запросить новый код

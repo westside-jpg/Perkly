@@ -5,11 +5,12 @@ interface BonusEnterProps {
     isBonusEnterOpen: boolean
     initialPhone: string
     bonusProgramState: string
+    onBasicClose: () => void
     onBonusEnterClose: (p: string) => void
     onSwitchToRegistration: () => void
 }
 
-export default function BonusEnter({ isBonusEnterOpen, initialPhone, bonusProgramState, onBonusEnterClose, onSwitchToRegistration } : BonusEnterProps) {
+export default function BonusEnter({ isBonusEnterOpen, initialPhone, bonusProgramState, onBasicClose, onBonusEnterClose, onSwitchToRegistration } : BonusEnterProps) {
     const [digits, setDigits] = useState('')
 
     useEffect(() => {
@@ -56,7 +57,9 @@ export default function BonusEnter({ isBonusEnterOpen, initialPhone, bonusProgra
 
 
             <button 
-                onClick={() => { onBonusEnterClose(initialPhone) }}
+                onClick={() => { 
+                    onBasicClose()
+                }}
                 className={`mb-4 flex h-[87px] w-[87px] shrink-0 items-center justify-center rounded-full 
                 bg-[#E4E2E2] shadow-md active:scale-90 transition-all duration-300 
                 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer

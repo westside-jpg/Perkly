@@ -31,6 +31,8 @@ function App() {
 
   // Стейт для подъема из Cart
   const [phone, setPhone] = useState("")
+  const [isBonusProgramDebit, setIsBonusProgramDebit] = useState(false)
+  const [bonusesCount, setBonusesCount] = useState(0)
 
   const [checkoutPrice, setCheckoutPrice] = useState(0)
   const [orderUUID, setOrderUUID] = useState("")
@@ -198,7 +200,20 @@ function App() {
     }
   }, [cart, screen])
 
-  const resetToWaitScreen = () => {
+  const resetToWaitScreen = async () => {
+    if (isBonusProgramDebit && phone.length === 10) {
+        try {
+            await fetch('http://localhost:8080/api/user/verify/cancel', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ phone: phone }),
+                credentials: "include"
+            })
+        } catch (err) {
+            console.log("Ошибка отмены бонусов при сбросе: ", err)
+        }
+    }
+
     setCart([])
     setPhone("")
     setCheckoutPrice(0)
@@ -212,6 +227,9 @@ function App() {
     setPopUpOption([])
 
     GetProductsAndCategories()
+
+    setIsBonusProgramDebit(false)
+    setBonusesCount(0)
 
     setScreen('screensaver')
   }
@@ -393,20 +411,25 @@ function App() {
 
         {/* -------------- КОРЗИНА --------------  */}
         {screen === 'cart' && (
-        <motion.div
-          key="cart"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          className="w-full h-full"
-        >
+          <motion.div
+            key="cart"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="w-full h-full"
+          >
             <Cart
               cart={cart}
               onBack={() => setScreen('catalog')}
               onRemove={removeFromCart}
-              onUpdatePhone={setPhone}
               onNext={handleCheckout}
+              phone={phone}
+              setPhone={setPhone}
+              isBonusProgramDebit={isBonusProgramDebit}
+              setIsBonusProgramDebit={setIsBonusProgramDebit}
+              bonusesCount={bonusesCount}
+              setBonusesCount={setBonusesCount}
             />
           </motion.div>
         )}
