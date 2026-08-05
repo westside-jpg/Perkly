@@ -18,6 +18,57 @@ import { AnimatePresence, motion } from 'framer-motion'
 
 import type { CartItem, PopUpProductInfo, PopUpVariant, Milk, PopUpOption, ProductCardAndCategories, CartItemForCheckout, CheckoutRequest } from './types'
 
+// --- Скролл и синхронизация категорий ---
+const CATALOG_TOP_PADDING = 64
+const SCROLL_BOTTOM_THRESHOLD = 15
+const ACTIVATION_LINE_RATIO = 0.35
+
+function getElementOffsetTop(container: HTMLElement, element: HTMLElement): number {
+  let offset = 0
+  let current: HTMLElement | null = element
+
+  while (current && current !== container) {
+    offset += current.offsetTop
+    current = current.offsetParent as HTMLElement | null
+  }
+
+  return offset
+}
+
+function getCategoryScrollTop(container: HTMLElement, title: HTMLElement): number {
+  const marginTop = parseFloat(getComputedStyle(title).marginTop) || 0
+  return Math.max(0, getElementOffsetTop(container, title) + marginTop - CATALOG_TOP_PADDING)
+}
+
+function resolveActiveCategory(
+  container: HTMLElement,
+  categories: { id: number; name: string }[],
+  titleRefs: Record<number, HTMLParagraphElement | null>,
+): number | null {
+  if (categories.length === 0) return null
+
+  const containerRect = container.getBoundingClientRect()
+  const activationLine = containerRect.top + container.clientHeight * ACTIVATION_LINE_RATIO
+
+  let currentId: number | null = null
+
+  for (const category of categories) {
+    const title = titleRefs[category.id]
+    if (!title) continue
+
+    if (title.getBoundingClientRect().top <= activationLine) {
+      currentId = category.id
+    } else {
+      break
+    }
+  }
+
+  if (container.scrollHeight - container.scrollTop - container.clientHeight <= SCROLL_BOTTOM_THRESHOLD) {
+    currentId = categories[categories.length - 1].id
+  }
+
+  return currentId
+}
 
 function App() {
   const [screen, setScreen] = useState<'screensaver' | 'catalog' | 'cart' | 'checkout' | 'methodCard' | 'methodSBP' | 'declined' | 'approved'>('screensaver')
@@ -291,75 +342,101 @@ function App() {
       }
   }, [resetIdleTimers])
 
-  // --- Скролл, и всё, что с ним связано ---
-  const sectionRefs = useRef<Record<number, HTMLDivElement | null>>({})
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
-  const isManualScrollRef = useRef(false)
-  const scrollEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+// --- Скролл и синхронизация категорий ---
+  const titleRefs = useRef<Record<number, HTMLParagraphElement | null>>({})
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const [scrollContainerReady, setScrollContainerReady] = useState(false)
+  const isProgrammaticScrollRef = useRef(false)
+  const scrollLockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scrollLockCleanupRef = useRef<(() => void) | null>(null)
 
-  const scrollToCategory = (categoryId: number) => {
-    isManualScrollRef.current = true
+  const releaseProgrammaticScrollLock = useCallback(() => {
+    isProgrammaticScrollRef.current = false
+    scrollLockCleanupRef.current?.()
+    scrollLockCleanupRef.current = null
+    if (scrollLockTimerRef.current) {
+      clearTimeout(scrollLockTimerRef.current)
+      scrollLockTimerRef.current = null
+    }
+  }, [])
+
+  const acquireProgrammaticScrollLock = useCallback((container: HTMLDivElement, fallbackMs = 900) => {
+    releaseProgrammaticScrollLock()
+    isProgrammaticScrollRef.current = true
+
+    const finish = () => {
+      releaseProgrammaticScrollLock()
+    }
+
+    const onScrollEnd = () => finish()
+    container.addEventListener('scrollend', onScrollEnd, { once: true })
+
+    scrollLockCleanupRef.current = () => {
+      container.removeEventListener('scrollend', onScrollEnd)
+    }
+
+    scrollLockTimerRef.current = setTimeout(finish, fallbackMs)
+  }, [releaseProgrammaticScrollLock])
+
+  const setScrollContainer = useCallback((node: HTMLDivElement | null) => {
+    scrollContainerRef.current = node
+    setScrollContainerReady(node !== null)
+  }, [])
+
+  const scrollToCategory = useCallback((categoryId: number) => {
     setSelectedCategory(categoryId)
 
     const container = scrollContainerRef.current
-    const target = sectionRefs.current[categoryId]
-    if (container && target) {
-      const offset = target.offsetTop - container.offsetTop - 24
-      container.scrollTo({ top: offset, behavior: 'smooth' })
-    }
-  }
+    const title = titleRefs.current[categoryId]
+    if (!container || !title) return
 
+    acquireProgrammaticScrollLock(container)
+
+    const top = getCategoryScrollTop(container, title)
+    container.scrollTo({ top, behavior: 'smooth' })
+  }, [acquireProgrammaticScrollLock])
+
+  // Синхронизация активного таба при ручном скролле каталога
   useEffect(() => {
     const container = scrollContainerRef.current
-    if (!container) return
-    
-    const ACTIVATION_LINE_RATIO = 0.35
+    if (!scrollContainerReady || !container || screen !== 'catalog' || categories.length === 0) return
 
-    const handleScroll = () => {
-      if (scrollEndTimerRef.current) clearTimeout(scrollEndTimerRef.current)
-      scrollEndTimerRef.current = setTimeout(() => {
-        isManualScrollRef.current = false
-      }, 150)
+    const syncActiveCategory = () => {
+      if (isProgrammaticScrollRef.current) return
 
-      if (isManualScrollRef.current) return
-
-      const line = container.scrollTop + container.clientHeight * ACTIVATION_LINE_RATIO
-
-      let currentId: number | null = null
-      for (const category of categories) {
-        const el = sectionRefs.current[category.id]
-        if (!el) continue
-        const sectionTop = el.offsetTop - container.offsetTop
-        if (sectionTop <= line) {
-          currentId = category.id
-        } else {
-          break
-        }
-      }
-
+      const currentId = resolveActiveCategory(container, categories, titleRefs.current)
       if (currentId !== null) {
-        setSelectedCategory(currentId)
+        setSelectedCategory(prev => (prev !== currentId ? currentId : prev))
       }
     }
 
-    container.addEventListener('scroll', handleScroll)
-    
-    const initTimer = setTimeout(() => {
-      handleScroll()
-    }, 50)
+    // Двойной rAF: дождаться layout после mount/unmount AnimatePresence
+    let raf2 = 0
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(syncActiveCategory)
+    })
+
+    container.addEventListener('scroll', syncActiveCategory, { passive: true })
 
     return () => {
-      container.removeEventListener('scroll', handleScroll)
-      clearTimeout(initTimer)
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+      container.removeEventListener('scroll', syncActiveCategory)
     }
-  }, [categories, screen])
+  }, [scrollContainerReady, categories, screen])
 
-
+  // Дефолтная категория при первом входе в каталог
   useEffect(() => {
     if (screen === 'catalog' && selectedCategory === null && categories.length > 0) {
       setSelectedCategory(categories[0].id)
     }
   }, [screen, categories, selectedCategory])
+
+  useEffect(() => {
+    if (screen !== 'catalog') {
+      releaseProgrammaticScrollLock()
+    }
+  }, [screen, releaseProgrammaticScrollLock])
 
   return (
     <KioskFrame>
@@ -435,8 +512,8 @@ function App() {
                               />
 
           <div 
-          ref={scrollContainerRef}
-          className={`overflow-y-auto scrollbar-hide max-h-[980px] 
+          ref={setScrollContainer}
+          className={`relative overflow-y-auto scrollbar-hide max-h-[980px] 
             ${cart.length > 0 ? "pb-[110px]" : "pb-[50px]"}`}
           style={{
                 maskImage: 'linear-gradient(to bottom, transparent, black 64px, black calc(100% - 64px), transparent)',
@@ -445,9 +522,13 @@ function App() {
               {categories.map(category => (
                   <div key={category.id}
                       data-category-id={category.id}
-                      ref={(el) => { sectionRefs.current[category.id] = el }}
                   >
-                      <p className="text-[40px] px-2 mt-6">{category.name}</p>
+                      <p
+                        ref={(el) => { titleRefs.current[category.id] = el }}
+                        className="text-[40px] px-2 mt-6 scroll-mt-16"
+                      >
+                        {category.name}
+                      </p>
                       <div className="grid grid-cols-3 gap-4 mt-6">
                           {results
                               .filter(p => p.category_id === category.id)

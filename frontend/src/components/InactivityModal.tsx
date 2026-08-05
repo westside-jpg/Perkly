@@ -35,7 +35,7 @@ export default function InactivityModal({ isOpen, onContinue, onCancel }: Inacti
 
     return (
         <div 
-            className={`absolute inset-0 z-50 flex flex-col items-center justify-center 
+            className={`absolute inset-0 z-100 flex flex-col items-center justify-center 
             bg-black/50 backdrop-blur-[4px] p-6
             transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
             ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
@@ -47,7 +47,7 @@ export default function InactivityModal({ isOpen, onContinue, onCancel }: Inacti
                 ${isOpen ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-12 scale-95"}`}
             >
                 {/* Заголовок */}
-                <div className="text-[42px] font-semibold tracking-tight text-black mt-6">
+                <div className="text-[42px] font-semibold tracking-tight text-black mt-6 leading-11">
                     Вы желаете продолжить оформление заказа?
                 </div>
 

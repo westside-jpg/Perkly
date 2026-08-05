@@ -7,5 +7,7 @@ import (
 )
 
 func RegisterEmployeesRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
-
+	r.GET("/api/barista/get-active-orders", func(c *gin.Context) {
+		
+	})
 }
