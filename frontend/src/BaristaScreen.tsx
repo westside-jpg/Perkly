@@ -45,9 +45,9 @@ export default function BaristaScreen() {
                         {/* Товар */}
                         <div className={`flex flex-col bg-[#CCCCCC] rounded-2xl p-2 items-center text-center`}>
                             {/* Название и объем */}
-                            <div className={`flex w-full flex-col gap-2 items-center rounded-2xl`}>
-                                <p className={`font-extrabold text-[32px] text-[#3E3C3C] leading-7.5 mt-2 mb-2`}>Американо</p>
-                                <p className={`w-fit bg-[#A5A5A5] rounded-full font-extrabold text-[18px] px-4 py-0.5 text-[#3E3C3C]`}>350 мл</p>
+                            <div className={`flex w-full flex-col gap-1.25 items-center rounded-2xl`}>
+                                <p className={`w-full font-extrabold bg-[#D1CDCD] border-[#A2A2A2] border-2 rounded-2xl px-6 py-3 text-[32px] text-[#3E3C3C] leading-7.5 mt-2`}>Латте</p>
+                                <p className={`w-full bg-[#D1CDCD] border-[#A2A2A2] border-2 rounded-full font-extrabold text-[18px] px-4 py-0.5 text-[#3E3C3C]`}>350 мл</p>
                             </div>
                             {/* Молоко */}
                             <div className={`flex flex-col w-full mt-3 bg-[#A5A5A5] p-2 rounded-2xl`}>
