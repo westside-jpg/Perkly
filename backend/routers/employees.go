@@ -4,9 +4,12 @@ import (
 	"context"
 	"time"
 	"net/http"
+	"errors"
 	"log"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -38,6 +41,10 @@ type OrderPiece struct {
 type Order struct {
     CommonOrderInfo CommonOrderInfo `json:"common_order_info"`
     Goods           []OrderPiece    `json:"goods"`
+}
+
+type OrderReady struct {
+	OrderUUID string `json:"order_uuid"`
 }
 
 func RegisterEmployeesRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
@@ -194,5 +201,46 @@ func RegisterEmployeesRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client)
 		}
 
 		c.JSON(http.StatusOK, gin.H{"orders": orders})
+	})
+
+	r.POST("/api/barista/order-ready", func(c *gin.Context) {
+		var req OrderReady
+		err := c.ShouldBindJSON(&req)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Неправильный запрос",
+			})
+			return
+		}
+
+		var orderClientNumber string
+		err = db.QueryRow(
+			context.Background(),
+			`UPDATE orders
+			 SET status = 'done', updated_at = NOW()
+			 WHERE order_uuid = $1
+			 RETURNING order_client_number`,
+			 req.OrderUUID,
+		).Scan(&orderClientNumber)
+
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "Заказ не найден",
+				})
+				return
+			}
+
+			log.Printf("Ошибка завершения заказа в БД: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка базы данных",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"order_client_number": orderClientNumber})
+		fmt.Printf("Заказ %s готов! Заберите его как можно скорее, пока он не остыл!\n", orderClientNumber)
+
 	})
 }

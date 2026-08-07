@@ -343,7 +343,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{})
-		fmt.Printf("Код подтверждения регистрации: %s", code)
+		fmt.Printf("Код подтверждения регистрации: %s\n", code)
 
 	})
 
@@ -528,7 +528,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{})
-		fmt.Printf("Код подтверждения списания бонусов: %s", code)
+		fmt.Printf("Код подтверждения списания бонусов: %s\n", code)
 
 	})
 

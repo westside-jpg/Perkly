@@ -107,6 +107,7 @@ export default function BaristaScreen() {
         return new Date(a.common_order_info.updated_at).getTime() - new Date(b.common_order_info.updated_at).getTime()
     })
 
+    // Получение новых заказов с сервера
     const GetNewOrders = async () => {
         try {
             const response = await fetch("http://localhost:8080/api/barista/get-new-orders")
@@ -119,6 +120,28 @@ export default function BaristaScreen() {
             }
         } catch (err) {
             console.log("Ошибка сервера: ", err)
+        }
+    }
+
+    const OrderReady = async (orderUUID: string) => {
+        try {
+            const response = await fetch(`http://localhost:8080/api/barista/order-ready`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ order_uuid: orderUUID }),
+                credentials: "include"
+            })
+            const data = await response.json()
+
+            if (response.ok) {
+                toast.success(`Заказ ${data["order_client_number"]} завершен!`)
+                GetNewOrders()
+            } else {
+                toast.error(data["error"])
+            }
+        } catch (err) {
+            console.log("Ошибка сервера: ", err)
+            toast.error("Ошибка сервера")
         }
     }
 
@@ -254,7 +277,10 @@ export default function BaristaScreen() {
 
                     <button className={`flex ${theme.buttonBg} py-3 rounded-full items-center justify-center
                         transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]
-                        active:scale-95 cursor-pointer`}>
+                        active:scale-95 cursor-pointer`}
+                        onClick={() => {
+                            OrderReady(order.common_order_info.order_uuid)
+                        }}>
                         <img alt="Готово" src="elements/apply.svg" className="w-7 h-7" />
                     </button>
                 </div>

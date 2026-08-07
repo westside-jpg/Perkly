@@ -348,7 +348,7 @@ export default function Cart({
                 return (
                     <div 
                         key={`${item.variant.id}-${index}`}
-                        className={`flex items-center gap-3 p-4 self-start w-full bg-[#E4E2E2] rounded-3xl pr-6 transition-all duration-300 ease-out overflow-hidden ${
+                        className={`flex shrink-0 items-center gap-3 p-4 self-start w-full bg-[#E4E2E2] rounded-3xl pr-6 transition-all duration-300 ease-out overflow-hidden ${
                             isDeleting ? 'opacity-0 scale-95 -translate-x-10 max-h-0 !p-0 !mb-0' : 'max-h-48 opacity-100 mb-3'
                         }`}
                     >
