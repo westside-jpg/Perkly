@@ -31,8 +31,76 @@ type Order = {
     goods: OrderPiece[]
 }
 
+// Цветовые палитры для разных уровней срочности заказа
+const THEMES = {
+    normal: { // 0–10 минут (Зеленый)
+        cardBg: "bg-[#DCFCE7]",
+        headerBadgeBg: "bg-[#86EFAC]",
+        headerBadgeBorder: "border-[#16A34A]",
+        headerBadgeText: "text-[#14532D]",
+        headerBorder: "border-[#86EFAC]",
+        itemBoxBg: "bg-[#4ADE80]",
+        itemBoxBorder: "border-[#16A34A]",
+        itemTitleBg: "bg-[#14532D]",
+        itemTitleText: "text-[#F0FDF4]",
+        itemVolumeBg: "bg-[#15803D]",
+        itemVolumeText: "text-[#F0FDF4]",
+        milkBoxBg: "bg-[#16A34A]",
+        milkTitleText: "text-[#F0FDF4]",
+        milkBadgeBg: "bg-[#DCFCE7]",
+        additivesBoxBg: "bg-[#16A34A]",
+        additivesTitleText: "text-[#F0FDF4]",
+        additivesBadgeBg: "bg-[#DCFCE7]",
+        additivesBadgeText: "text-[#14532D]",
+        buttonBg: "bg-[#14532D]"
+    },
+    warning: { // 10–15 минут (Желтый)
+        cardBg: "bg-[#FEF08A]",
+        headerBadgeBg: "bg-[#FDE047]",
+        headerBadgeBorder: "border-[#CA8A04]",
+        headerBadgeText: "text-[#713F12]",
+        headerBorder: "border-[#FDE047]",
+        itemBoxBg: "bg-[#EAB308]",
+        itemBoxBorder: "border-[#CA8A04]",
+        itemTitleBg: "bg-[#713F12]",
+        itemTitleText: "text-[#FEFCE8]",
+        itemVolumeBg: "bg-[#A16207]",
+        itemVolumeText: "text-[#FEFCE8]",
+        milkBoxBg: "bg-[#CA8A04]",
+        milkTitleText: "text-[#FEFCE8]",
+        milkBadgeBg: "bg-[#FEF9C3]",
+        additivesBoxBg: "bg-[#CA8A04]",
+        additivesTitleText: "text-[#FEFCE8]",
+        additivesBadgeBg: "bg-[#FEF9C3]",
+        additivesBadgeText: "text-[#713F12]",
+        buttonBg: "bg-[#713F12]"
+    },
+    urgent: { // > 15 минут (Красный)
+        cardBg: "bg-[#FEE2E2]",
+        headerBadgeBg: "bg-[#FCA5A5]",
+        headerBadgeBorder: "border-[#DC2626]",
+        headerBadgeText: "text-[#7F1D1D]",
+        headerBorder: "border-[#FCA5A5]",
+        itemBoxBg: "bg-[#F87171]",
+        itemBoxBorder: "border-[#DC2626]",
+        itemTitleBg: "bg-[#7F1D1D]",
+        itemTitleText: "text-[#FEF2F2]",
+        itemVolumeBg: "bg-[#991B1B]",
+        itemVolumeText: "text-[#FEF2F2]",
+        milkBoxBg: "bg-[#DC2626]",
+        milkTitleText: "text-[#FEF2F2]",
+        milkBadgeBg: "bg-[#FEE2E2]",
+        additivesBoxBg: "bg-[#DC2626]",
+        additivesTitleText: "text-[#FEF2F2]",
+        additivesBadgeBg: "bg-[#FEE2E2]",
+        additivesBadgeText: "text-[#7F1D1D]",
+        buttonBg: "bg-[#7F1D1D]"
+    }
+}
+
 export default function BaristaScreen() {
     const [orders, setOrders] = useState<Order[]>([])
+    const [now, setNow] = useState<number>(Date.now())
     
     // Сортируем заказы: старые выше, новые ниже
     const sortedOrders = [...orders].sort((a, b) => {
@@ -54,28 +122,40 @@ export default function BaristaScreen() {
         }
     }
 
-    // Поллинг каждые 5 секунд
+    // Поллинг заказов раз в 5 сек + обновление метки времени раз в 10 сек для автосмены цвета
     useEffect(() => {
         GetNewOrders()
 
-        const interval = setInterval(() => {
-            GetNewOrders()
-        }, 5000)
+        const intervalOrders = setInterval(GetNewOrders, 5000)
+        const intervalTimer = setInterval(() => setNow(Date.now()), 10000)
 
-        return () => clearInterval(interval)
+        return () => {
+            clearInterval(intervalOrders)
+            clearInterval(intervalTimer)
+        }
     }, [])
+
+    // Вычисление категории срочности по времени заказа
+    const getUrgencyLevel = (updatedAt: string): 'normal' | 'warning' | 'urgent' => {
+        const orderTime = new Date(updatedAt).getTime()
+        const diffMinutes = (now - orderTime) / (1000 * 60)
+
+        if (diffMinutes >= 15) return 'urgent'
+        if (diffMinutes >= 10) return 'warning'
+        return 'normal'
+    }
 
     // Расчет условной высоты заказа для балансировки колонок
     const getOrderScore = (order: Order) => {
-        let score = 2 // Базовый вес (номер заказа + кнопка)
+        let score = 2
         order.goods?.forEach((item) => {
-            score += 3 // Вес самого товара
-            score += item.options?.length || 0 // Вес каждой добавки/молока
+            score += 3
+            score += item.options?.length || 0
         })
         return score
     }
 
-    // Распределяем заказы по двум колонкам (туда, где меньше суммарная высота)
+    // Распределяем заказы по двум колонкам
     const leftColumn: Order[] = []
     const rightColumn: Order[] = []
     let leftHeight = 0
@@ -92,20 +172,23 @@ export default function BaristaScreen() {
         }
     })
 
-    // Рендер отдельной карточки заказа
+    // Рендер карточки заказа с индивидуальной палитрой
     const renderOrderCard = (order: Order) => {
+        const urgency = getUrgencyLevel(order.common_order_info.updated_at)
+        const theme = THEMES[urgency]
+
         const sortedGoods = [...(order.goods || [])].sort((a, b) => 
             a.product.name.localeCompare(b.product.name)
         )
 
         return (
-            <div key={order.common_order_info.order_uuid} className="bg-[#E4E2E2] rounded-3xl p-4 h-fit">
+            <div key={order.common_order_info.order_uuid} className={`${theme.cardBg} rounded-3xl p-4 h-fit transition-colors duration-500`}>
                 {/* Номер заказа и время */}
-                <div className="flex flex-row gap-2 border-b-2 pb-3 border-[#D1CDCD]">
-                    <p className="font-semibold text-[24px] bg-[#D1CDCD] rounded-full px-4 border-2 border-[#A2A2A2]">
+                <div className={`flex flex-row gap-2 border-b-2 pb-3 ${theme.headerBorder}`}>
+                    <p className={`font-semibold text-[24px] ${theme.headerBadgeBg} ${theme.headerBadgeText} rounded-full px-4 border-2 ${theme.headerBadgeBorder}`}>
                         {order.common_order_info.order_client_number}
                     </p>
-                    <p className="font-semibold text-[24px] bg-[#D1CDCD] rounded-full px-4 border-2 border-[#A2A2A2]">
+                    <p className={`font-semibold text-[24px] ${theme.headerBadgeBg} ${theme.headerBadgeText} rounded-full px-4 border-2 ${theme.headerBadgeBorder}`}>
                         {new Date(order.common_order_info.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                 </div>
@@ -123,23 +206,25 @@ export default function BaristaScreen() {
                         const itemKey = `${item.product.name}-${item.product.volume}-${itemIndex}`
 
                         return (
-                            <div key={itemKey} className="flex flex-col bg-[#CCCCCC] border-2 border-[#9c9b9b] rounded-2xl p-2 items-center text-center">
+                            <div key={itemKey} className={`flex flex-col ${theme.itemBoxBg} border-2 ${theme.itemBoxBorder} rounded-2xl p-2 items-center text-center transition-colors duration-500`}>
                                 
                                 {/* Название и объем */}
                                 <div className="flex w-full flex-col gap-1.25 items-center rounded-2xl">
-                                    <p className="w-full font-extrabold bg-[#383838] rounded-2xl px-6 py-3 text-[32px] text-[#ebe9e9] leading-7.5">
+                                    <p className={`w-full font-extrabold ${theme.itemTitleBg} ${theme.itemTitleText} rounded-2xl px-6 py-3 text-[32px] leading-7.5`}>
                                         {item.product.name}
                                     </p>
-                                    <p className="w-full bg-[#696968] rounded-full font-extrabold text-[18px] px-4 py-0.5 text-[#ebe9e9]">
+                                    <p className={`w-full ${theme.itemVolumeBg} ${theme.itemVolumeText} rounded-full font-extrabold text-[18px] px-4 py-0.5`}>
                                         {item.product.volume} {item.product.unit}
                                     </p>
                                 </div>
 
                                 {/* Молоко */}
                                 {milk.length > 0 && (
-                                    <div className="flex flex-col w-full mt-3 bg-[#A5A5A5] p-2 rounded-2xl">
-                                        <p className="font-extrabold text-[24px] text-[#3E3C3C] bg-[#d2d0d0] rounded-full mb-2">Молоко</p>
-                                        <p className="flex-1 bg-[#d2d0d0] rounded-full font-extrabold text-[18px] text-[#3E3C3C]">
+                                    <div className={`flex flex-col w-full mt-3 ${theme.milkBoxBg} p-2 rounded-2xl`}>
+                                        <p className={`font-extrabold text-[24px] ${theme.additivesBadgeText} ${theme.milkBadgeBg} rounded-full mb-2`}>
+                                            Молоко
+                                        </p>
+                                        <p className={`flex-1 ${theme.milkBadgeBg} ${theme.additivesBadgeText} rounded-full font-extrabold text-[18px]`}>
                                             {milk[0].name}
                                         </p>
                                     </div>
@@ -147,15 +232,15 @@ export default function BaristaScreen() {
 
                                 {/* Добавки */}
                                 {additives.length > 0 && (
-                                    <div className="flex flex-col w-full mt-2 bg-[#a7a7a7] p-2 rounded-2xl">
-                                        <p className="flex-1 bg-[#d2d0d0] rounded-full font-extrabold text-[24px] text-[#3E3C3C] mb-2">Добавки</p>
+                                    <div className={`flex flex-col w-full mt-2 ${theme.additivesBoxBg} p-2 rounded-2xl`}>
+                                        <p className={`flex-1 ${theme.milkBadgeBg} ${theme.additivesBadgeText} rounded-full font-extrabold text-[24px] mb-2`}>Добавки</p>
                                         <div className="flex flex-col gap-[7px]">
                                             {additives.map((add, aIdx) => (
                                                 <div key={`${add.name}-${aIdx}`} className="flex flex-row gap-1">
-                                                    <p className="flex-[75%] font-extrabold bg-[#d2d0d0] rounded-full text-[18px] text-[#3E3C3C]">
+                                                    <p className={`flex-[75%] font-extrabold ${theme.additivesBadgeBg} ${theme.additivesBadgeText} rounded-full text-[18px]`}>
                                                         {add.group === 'syrup' ? `${add.name} сироп` : add.name}
                                                     </p>
-                                                    <p className="flex-[25%] bg-[#d2d0d0] rounded-full font-extrabold text-[18px] text-[#3E3C3C]">
+                                                    <p className={`flex-[25%] ${theme.additivesBadgeBg} ${theme.additivesBadgeText} rounded-full font-extrabold text-[18px]`}>
                                                         {add.volume} {add.unit}
                                                     </p>
                                                 </div>
@@ -167,9 +252,9 @@ export default function BaristaScreen() {
                         )
                     })}
 
-                    <button className="flex bg-black py-3 rounded-full items-center justify-center
+                    <button className={`flex ${theme.buttonBg} py-3 rounded-full items-center justify-center
                         transition-all duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]
-                        active:scale-95 cursor-pointer">
+                        active:scale-95 cursor-pointer`}>
                         <img alt="Готово" src="elements/apply.svg" className="w-7 h-7" />
                     </button>
                 </div>
