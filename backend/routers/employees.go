@@ -41,9 +41,9 @@ type Order struct {
 }
 
 func RegisterEmployeesRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
-	r.GET("/api/barista/get-active-orders", func(c *gin.Context) {
+	r.GET("/api/barista/get-new-orders", func(c *gin.Context) {
 		// Список айди всех новых заказов
-		var newOrdersIDs []int
+		newOrdersIDs := []int{}
 		ordersRows, err := db.Query(
 			context.Background(),
 			`SELECT id FROM orders WHERE status = 'paid'`,
@@ -125,7 +125,7 @@ func RegisterEmployeesRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client)
 			itemRows.Close()
 
 			// Список товаров одного заказа
-			var goods []OrderPiece
+			goods := []OrderPiece{}
 			for key, value := range productsIDs {
 
 				optRows, err := db.Query(
@@ -145,7 +145,7 @@ func RegisterEmployeesRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client)
 				}
 				
 				// Список опций для конкретного товара
-				var options []Option
+				options := []Option{}
 				for optRows.Next() {
 					var option Option
 					if err := optRows.Scan(&option.Name, &option.Group, &option.Volume, &option.Unit); err != nil {
@@ -164,8 +164,11 @@ func RegisterEmployeesRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client)
 				var product Product
 				err = db.QueryRow(
 					context.Background(),
-					`SELECT name, volume, unit FROM product_variants WHERE id = $1`,
-					value,
+					`SELECT p.name, pv.volume, p.unit 
+					 FROM product_variants pv
+					 JOIN products p ON p.id = pv.product_id
+					 WHERE pv.id = $1`,
+					 value,
 				).Scan(&product.Name, &product.Volume, &product.Unit)
 
 				if err != nil {

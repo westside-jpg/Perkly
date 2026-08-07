@@ -123,10 +123,10 @@ func CreateTables(db *pgxpool.Pool) error {
 		);
 
 		CREATE TABLE IF NOT EXISTS order_item_options (
+			id SERIAL PRIMARY KEY,
 			order_item_id INTEGER NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
 			option_id INTEGER NOT NULL REFERENCES options(id),
-			price_snapshot INTEGER NOT NULL DEFAULT 0,
-			PRIMARY KEY (order_item_id, option_id)
+			price_snapshot INTEGER NOT NULL DEFAULT 0
 		);
 
 		CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
