@@ -4,6 +4,7 @@ interface MethodCardProps {
     onDeclined: () => void
 }
 
+// Мок оплаты картой
 export default function MethodCard({ onBack, onApproved, onDeclined } : MethodCardProps) {
     return (
         <div className={`flex flex-col items-center max-h-[1060px] overflow-y-auto pb-27 scrollbar-hide mt-6`}>

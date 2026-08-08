@@ -31,9 +31,9 @@ type Order = {
     goods: OrderPiece[]
 }
 
-// Цветовые палитры для разных уровней срочности заказа
+// Палитра карточки по времени ожидания заказа
 const THEMES = {
-    normal: { // 0–10 минут (Зеленый)
+    normal: { // до 10 минут
         cardBg: "bg-[#DCFCE7]",
         headerBadgeBg: "bg-[#86EFAC]",
         headerBadgeBorder: "border-[#16A34A]",
@@ -54,7 +54,7 @@ const THEMES = {
         additivesBadgeText: "text-[#14532D]",
         buttonBg: "bg-[#14532D]"
     },
-    warning: { // 10–15 минут (Желтый)
+    warning: { // 10–15 минут
         cardBg: "bg-[#FEF08A]",
         headerBadgeBg: "bg-[#FDE047]",
         headerBadgeBorder: "border-[#CA8A04]",
@@ -75,7 +75,7 @@ const THEMES = {
         additivesBadgeText: "text-[#713F12]",
         buttonBg: "bg-[#713F12]"
     },
-    urgent: { // > 15 минут (Красный)
+    urgent: { // больше 15 минут
         cardBg: "bg-[#FEE2E2]",
         headerBadgeBg: "bg-[#FCA5A5]",
         headerBadgeBorder: "border-[#DC2626]",
@@ -98,6 +98,7 @@ const THEMES = {
     }
 }
 
+// Экран бариста. Заказы тянем polling'ом
 export default function BaristaScreen() {
     const [orders, setOrders] = useState<Order[]>([])
     const [now, setNow] = useState<number>(Date.now())

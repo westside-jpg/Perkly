@@ -32,11 +32,10 @@ export default function Approved({ isApproved, onFinish, orderNumber } : Approve
         return () => clearInterval(interval)
     }, [isApproved, onFinish])
 
-    // Конфетти
+    // Конфетти рисуем в canvas внутри KioskFrame, иначе scale() всё ломает
     useEffect(() => {
         if (!isApproved) return
 
-        // Ищем ближайший родительский блок .kioskframe (или берём сам текущий div)
         const frame = containerRef.current?.closest('.kioskframe') || containerRef.current
         if (!frame) return
 

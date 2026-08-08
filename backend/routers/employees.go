@@ -47,9 +47,9 @@ type OrderReady struct {
 	OrderUUID string `json:"order_uuid"`
 }
 
+// Роуты панели бариста
 func RegisterEmployeesRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	r.GET("/api/barista/get-new-orders", func(c *gin.Context) {
-		// Список айди всех новых заказов
 		newOrdersIDs := []int{}
 		ordersRows, err := db.Query(
 			context.Background(),
@@ -77,8 +77,7 @@ func RegisterEmployeesRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client)
 			newOrdersIDs = append(newOrdersIDs, id)
 		}
 
-		// Инициализацуем orders именно так, чтобы при отсутствии
-		// новых заказов на фронт пришел [], а не null
+		// Пустой слайс, чтобы JSON был [] а не null
 		orders := []Order{}
 		for _, newOrderID := range newOrdersIDs {
 
@@ -100,7 +99,7 @@ func RegisterEmployeesRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client)
 				return
 			}
 
-			// Мап для продуктов из заказа [id (primary key)]: product_variant_id
+			// order_item.id -> product_variant_id
 			productsIDs := make(map[int]int)
 			itemRows, err := db.Query(
 				context.Background(),

@@ -6,6 +6,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// Роуты киоска и панели бариста
 func SetupRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	RegisterClientsRoutes(r, db, rdb)
 	RegisterEmployeesRoutes(r, db, rdb)

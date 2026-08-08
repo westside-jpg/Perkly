@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Наполняет меню при первом запуске. Если данные уже есть, то ничего не делает
 func SetupSeeds(db *pgxpool.Pool) error {
 	var count int
 	err := db.QueryRow(

@@ -52,9 +52,7 @@ export default function CustomizationPopUp({ isOpen, onClose, product, variants,
         }
     }, [variants])
 
-    // Как только пришли новые options (открылся другой товар),
-    // сразу вычленяем группы milk, syrup, addon
-    // и записываем в стейт
+    // При открытии другого товара сбрасываем выбор и раскладываем options по группам
     useEffect(() => {
         if (options && options.length > 0) {
             const milkOptions = options.filter(o => o.group === 'milk')

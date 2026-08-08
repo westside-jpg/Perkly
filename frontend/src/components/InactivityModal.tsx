@@ -6,6 +6,7 @@ interface InactivityModalProps {
     onCancel: () => void
 }
 
+// Модалка перед сбросом киоска в заставку
 export default function InactivityModal({ isOpen, onContinue, onCancel }: InactivityModalProps) {
     const [timeLeft, setTimeLeft] = useState(15)
 

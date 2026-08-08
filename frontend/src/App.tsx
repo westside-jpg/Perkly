@@ -48,6 +48,7 @@ function resolveActiveCategory(
   if (categories.length === 0) return null
 
   const containerRect = container.getBoundingClientRect()
+  // Линия на 35% высоты контейнера. Какая категория выше неё, та и активна.
   const activationLine = containerRect.top + container.clientHeight * ACTIVATION_LINE_RATIO
 
   let currentId: number | null = null
@@ -63,6 +64,7 @@ function resolveActiveCategory(
     }
   }
 
+  // Внизу списка всегда подсвечиваем последнюю категорию
   if (container.scrollHeight - container.scrollTop - container.clientHeight <= SCROLL_BOTTOM_THRESHOLD) {
     currentId = categories[categories.length - 1].id
   }
@@ -361,6 +363,7 @@ function App() {
   }, [])
 
   const acquireProgrammaticScrollLock = useCallback((container: HTMLDivElement, fallbackMs = 900) => {
+    // Пока крутим каталог по клику на таб, scroll-spy не должен дёргать активную вкладку
     releaseProgrammaticScrollLock()
     isProgrammaticScrollRef.current = true
 

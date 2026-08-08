@@ -10,6 +10,7 @@ interface BonusVerificationProps {
     onBonusVerificationClose: (code: string) => void
 }
 
+// Ввод SMS-кода для регистрации или подтверждения списания бонусов
 export default function BonusVerification({isBonusVerificationOpen, initialPhone, onBonusVerificationClose, resendCode, onBasicClose } : BonusVerificationProps) {
     const [digits, setDigits] = useState('')
 

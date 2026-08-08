@@ -13,6 +13,7 @@ export default function SyrupAndAddonChooser({ syrupsAndAddons, totalCount, onTo
     const [counts, setCounts] = useState<Record<number, number>>({})
 
     const handleIncrement = (item: PopUpOption) => {
+        // Не больше трёх сиропов и добавок суммарно на один напиток
         if (totalCount >= 3) return
 
         setCounts(prev => ({

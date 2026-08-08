@@ -28,6 +28,7 @@ function scrollTabIntoView(
     })
 }
 
+// Горизонтальные табы категорий
 export default function CategoriesTabs({ categories, selectedCategory, onSelectCategory }: CategoriesTabsProps) {
     const containerRef = useRef<HTMLDivElement>(null)
     const tabRefs = useRef<Record<number, HTMLParagraphElement | null>>({})

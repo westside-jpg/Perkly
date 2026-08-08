@@ -50,9 +50,11 @@ type PayRequest struct {
 	Status    string `json:"status"`
 }
 
+// Роуты киоска для клиента. Каталог, бонусы, чекаут, мок-оплата
 func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 
 	r.GET("/api/get-products-and-categories", func(c *gin.Context) {
+		// MIN по вариантам нужен для подписи «от X ₽» на карточке
 		rows, err := db.Query(
 			context.Background(),
 			`SELECT 
@@ -343,6 +345,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{})
+		// SMS не приходит на номер, код смотрим в логах backend
 		fmt.Printf("Код подтверждения регистрации: %s\n", code)
 
 	})
@@ -591,6 +594,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 		rdb.Del(context.Background(), codeKey, attemptsKey, rateLimitKey)
 
 		bonusKey := fmt.Sprintf("bonuses:apply:%s", req.Phone)
+		// Флаг живёт 15 минут. При оплате бонусы списываются, только если ключ есть в Redis
 		if err := rdb.Set(c.Request.Context(), bonusKey, true, 15 * time.Minute).Err(); err != nil {
 			log.Printf("Ошибка сохранения кода в Redis: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -654,6 +658,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	})
 
 	r.POST("api/order/checkout", func(c *gin.Context) {
+		// Цены берём из БД, а не с фронта. Так нельзя подменить сумму в запросе
 		var req CheckoutRequest
 		err := c.ShouldBindJSON(&req)
 
@@ -669,7 +674,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			return
 		}
 
-		// Получаем айдишники всех продуктов из корзины
+		// Получаем id вариантов из корзины
 		variantIDs := make([]int, len(req.Items))
 		for i, item := range req.Items {
 			variantIDs[i] = item.ProductVariantID
@@ -691,7 +696,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 		}
 		defer rows.Close()
 
-		// Создаем map для продуктов из корзины [айди_варианта]: [его_цена]
+		// variant_id -> цена данного объёма
 		prices := make(map[int]int)
 		for rows.Next() {
     		var id, price int
@@ -720,8 +725,8 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			optionIDs = append(optionIDs, item.OptionIDs...)
 		}
 
-		// Создаем map для опций из корзины [айди_опции]: [ее_цена]
-		optionPrices := make(map[int]int) 
+		// option_id -> наценка
+		optionPrices := make(map[int]int)
 
 		if len(optionIDs) > 0 {
 			optionRows, err := db.Query(
@@ -755,7 +760,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 
 		totalPrice := 0
 
-		// Структура посчитанного товара (чтобы потом записать в БД)
+		// Структура для записи в order_items и order_item_options
 		type CalculatedItem struct {
 			ProductVariantID int
 			BasePrice        int
@@ -857,7 +862,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 			`INSERT INTO orders (order_uuid, user_id, total_price, bonuses_used, final_price, bonuses_accrued)
 			VALUES ($1, $2, $3, $4, $5, $6)
 			RETURNING id`,
-			orderUUID, userID, totalPrice, bonusesUsed, finalPrice, (finalPrice / 10),
+			orderUUID, userID, totalPrice, bonusesUsed, finalPrice, (finalPrice / 10), // 10% кешбэк от суммы к оплате
 		).Scan(&newOrderID)
 		if err != nil {
 			log.Printf("Ошибка записи значений в таблицу orders: %v", err)
@@ -915,6 +920,7 @@ func RegisterClientsRoutes(r *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 	})
 
 	r.POST("api/order/pay", func(c *gin.Context) {
+		// Мок терминала. Реальной интеграции с эквайрингом нет
 		var req PayRequest
 		err := c.ShouldBindJSON(&req)
 

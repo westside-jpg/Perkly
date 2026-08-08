@@ -10,6 +10,7 @@ interface BonusEnterProps {
     onSwitchToRegistration: () => void
 }
 
+// Ввод номера для входа в бонусную программу
 export default function BonusEnter({ isBonusEnterOpen, initialPhone, bonusProgramState, onBasicClose, onBonusEnterClose, onSwitchToRegistration } : BonusEnterProps) {
     const [digits, setDigits] = useState('')
 

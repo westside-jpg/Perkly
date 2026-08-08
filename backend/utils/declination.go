@@ -1,5 +1,6 @@
 package utils
 
+// Склонение слов
 func DeclinationWord(n int, one, two, many string) string {
     absN := n
     if absN < 0 {

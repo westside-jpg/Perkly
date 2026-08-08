@@ -5,6 +5,7 @@ interface KeypadProps {
     onDelete: () => void
 }
 
+// Цифровая клавиатура для ввода телефона на киоске
 export default function Keypad({ onNumberClick, onDelete }: KeypadProps) {
     const numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
 

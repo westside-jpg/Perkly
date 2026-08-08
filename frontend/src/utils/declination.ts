@@ -1,3 +1,4 @@
+// Склонение «товар / товара / товаров» и похожих фраз в UI
 export const declinationWord = (n: number, one: string, two: string, many: string): string => {
     const lastTwoDigits = Math.abs(n) % 100
 

@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 const WIDTH = 820
 const HEIGHT = 1180
 
+// Обёртка под планшет-киоск. Масштабирует 820x1180 под окно браузера через scale()
 export default function KioskFrame({ children }: { children: ReactNode }) {
   const [scale, setScale] = useState(1)
 

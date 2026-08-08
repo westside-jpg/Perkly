@@ -5,6 +5,7 @@ interface CheckoutProps {
     onNextMethodSBP: () => void
 }
 
+// Выбор способа оплаты перед мок-терминалом
 export default function Checkout({ checkoutPrice, onBack, onNextMethodCard, onNextMethodSBP } : CheckoutProps) {
     return (
         <div className={`flex flex-col items-center max-h-[1060px] overflow-y-auto pb-27 scrollbar-hide mt-6`}>

@@ -1,3 +1,5 @@
+// Общие типы ответов API и состояния корзины
+
 export type Category = { 
     id: number
     name: string

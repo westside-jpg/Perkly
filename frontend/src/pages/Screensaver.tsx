@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 
+// Можно добавить/заменить/удалить любую промо-картинку и все адаптируется
 const SCREENSAVER_SLIDES = [
     { id: 1, image: '/screensaver/screensaver-1.png'},
     { id: 2, image: '/screensaver/screensaver-2.png'},
@@ -12,6 +13,7 @@ interface ScreensaverProps {
     onStart: () => void
 }
 
+// Скринсейвер (промо-заставка) киоска. Слайды крутятся сами, по касанию открывается каталог
 export default function Screensaver({ onStart }: ScreensaverProps) {
     const [currentSlide, setCurrentSlide] = useState(0)
     const [progressKey, setProgressKey] = useState(0)

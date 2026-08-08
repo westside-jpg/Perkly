@@ -7,6 +7,7 @@ interface BonusRegistrationProps {
     onBonusRegistrationClose: (phone: string) => void
 }
 
+// Регистрация нового номера в бонусной программе
 export default function BonusRegistration({isBonusRegistrationOpen, onBasicClose, onBonusRegistrationClose } : BonusRegistrationProps) {
     const [digits, setDigits] = useState('')
 

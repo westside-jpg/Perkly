@@ -6,14 +6,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"github.com/westside-jpg/Perkly/backend/config"
 )
 
-/*
-Connect устанавливает пул соединений с PostgreSQL
-по строке подключения и проверяет его через Ping.
-При ошибке подключения завершает программу через log.Fatal,
-так как без БД приложение не может работать
-*/
 func Connect(databaseURL string) *pgxpool.Pool {
 
 	db, err := pgxpool.New(
@@ -34,11 +29,6 @@ func Connect(databaseURL string) *pgxpool.Pool {
 	return db
 }
 
-/*
-CreateTables создаёт таблицы, если они ещё
-не существуют. Безопасно вызывать при каждом запуске сервера,
-существующие таблицы не затрагиваются (CREATE TABLE IF NOT EXISTS)
-*/
 func CreateTables(db *pgxpool.Pool) error {
 
 	_, err := db.Exec(
@@ -97,7 +87,7 @@ func CreateTables(db *pgxpool.Pool) error {
 			INCREMENT BY 1
 			MINVALUE 100
 			MAXVALUE 999
-			CYCLE;
+			CYCLE; -- номер на чеке для клиента, крутится 100..999
 
 		CREATE TABLE IF NOT EXISTS orders (
 			id SERIAL PRIMARY KEY,
@@ -139,6 +129,7 @@ func CreateTables(db *pgxpool.Pool) error {
 
 }
 
+// Полный сброс схемы
 func DropTables(db *pgxpool.Pool) error {
 	_, err := db.Exec(
 		context.Background(),
@@ -158,10 +149,10 @@ func DropTables(db *pgxpool.Pool) error {
 	return err
 }
 
-func NewRedisClient() *redis.Client {
+func NewRedisClient(cfg config.RedisConfig) *redis.Client {
 	return redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
+		Addr:     cfg.Addr,
+		Password: cfg.Password,
+		DB:       cfg.DB,
 	})
 }

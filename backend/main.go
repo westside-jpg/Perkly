@@ -16,6 +16,8 @@ func main() {
 	db := database.Connect(config.GetDatabaseURL())
 	defer db.Close()
 
+	// Пока в разработке, сносим таблицы при каждом старте
+	// Убрать перед продом
 	err := database.DropTables(db)
 	if err != nil {
 		log.Fatal("Не удалось удалить таблицы!\n", err)
@@ -28,7 +30,7 @@ func main() {
 
 	_ = seed.SetupSeeds(db)
 
-	rdb := database.NewRedisClient()
+	rdb := database.NewRedisClient(config.GetRedisConfig())
 
 	if err := rdb.Ping(context.Background()).Err(); err != nil {
 		log.Fatalf("Не удалось подключиться к Redis: %v", err)
